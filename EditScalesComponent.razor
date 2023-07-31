@@ -1,0 +1,502 @@
+﻿@using NufarMeir_GalOxenberg.Client.Pages
+@using NufarMeir_GalOxenberg.Shared.DTOs
+@inject HttpClient Http
+@inject NavigationManager navigationManager
+@inject IDialogService DialogService
+@using MudBlazor
+
+<PageTitle>Edit scales</PageTitle>
+
+<style>
+
+    :root {
+        --mud-palette-surface: #EFEED8;
+        --mud-palette-primary: #12273D;
+        --mud-palette-secondary-darken: #1C3D59;
+        --mud-palette-primary-lighten: #1C3D59;
+
+    }  
+
+    .dropzone-full-color {
+        background-color: rgba(168,211,140,0.6)
+    }
+
+    .mud-input > input.mud-input-root, div.mud-input-slot.mud-input-root {
+        height: 0.3rem;
+    }
+
+    .mud-button-filled.mud-button-filled-secondary {
+        color: var(--mud-palette-secondary-text);
+        background-color: #12273D;
+    }
+
+    .pa-6 {
+        padding: 1rem!important;
+    }
+
+    .mud-background-gray {
+        background-color: rgba(213, 211, 150, 0.21)!important;
+    }
+
+    .mud-tab.mud-disabled {
+        cursor: default;
+        pointer-events: none;
+        color: gray;
+    }
+</style>
+
+<EditForm Model="NewResource" OnValidSubmit="Ready" Style="background-color: #EFEED8; display: flex; justify-content: center;">
+    <MudIconButton Style="margin-right:0.5rem;" OnClick="BackToBoard" Icon="@Icons.Material.Filled.NavigateNext" Color="Color.Info">
+        <p>חזרה ללוח</p>
+    </MudIconButton>
+    <MudTabs @ref="tabs" Style="font-family:Fredoka;padding-left: 2rem; padding-right: 2rem;font-size:16px;" Elevation="1" Centered="true" Color="@Color.Primary">
+
+        <MudTabPanel Text="1. בחירת המדדים">
+            <MudText Style="font-family:Fredoka;padding-top: 2rem;font-size:15px;">
+                המדדים יוצגו לכלל השחקנים ויושפעו לאורך כל המשחק מהחלטותיהם.
+                <br />
+                <p>
+                    ביצירת או עריכת סבב קבלת החלטות נבחר את מידת השינוי של כל מדד.
+                </p>
+                <br />
+                <p>
+                    יש לבחור 3-5 מדדים על ידי גרירתם מבנק המדדים לעמודת הבחירות שלי
+                </p>
+            </MudText>
+            <MudDropContainer T="DropItem" Items="_items" ItemsSelector="@((item, dropzone) => item.Identifier == dropzone)" ItemDropped="ItemUpdated" Class="d-flex flex-wrap flex-grow-1">
+                <ChildContent>
+                    <div class="d-flex flex-wrap">
+                        <MudDropZone T="DropItem" Identifier="Drop Zone 1" Class="rounded mud-background-gray pa-6 ma-8 flex-grow-1" Style="width: 30rem; display: flex; flex-wrap: wrap; justify-content: space-between; background-color: rgba(213, 211, 150, 0.21)!important;">
+                            <MudText Typo="Typo.h6" Class="mb-4" Style="font-family: Fredoka; font-size: 17px; width:9rem;">בנק מדדים</MudText>
+                        </MudDropZone>
+                        <MudDropZone T="DropItem" Identifier="Drop Zone 2" Class="@GetDropZone2ColorClass()" Style="width:13rem;">
+                            <MudText Typo="Typo.h6" Class="mb-4" Style="font-family: Fredoka; font-size: 17px;">הבחירות שלי</MudText>
+                        </MudDropZone>
+                    </div>
+                </ChildContent>
+                <ItemRenderer Context="item">
+                    @if(item.Name == "אחר")
+                    {
+                        <MudTooltip Text="במסך הבא ניתן יהיה לקבוע את שם המדד" Arrow="true" Placement="Placement.Bottom" Color="Color.Info">
+                            <MudPaper Style="font-family: Fredoka; font-size: 14px; width:9rem;" Elevation="25" Class="pa-3 my-4">@item.Name</MudPaper>
+                        </MudTooltip>
+                    } else {
+                    <MudPaper Style="font-family: Fredoka; font-size: 14px; width:9rem;" Elevation="25" Class="pa-3 my-4">@item.Name</MudPaper>
+                    }
+                </ItemRenderer>
+            </MudDropContainer>
+            <MudIconButton Disabled=@ItemsDisabled Style="transform: rotate(180deg); right: 93%;" OnClick="() => Activate(1)" Icon="@Icons.Material.Filled.NavigateNext" Color="Color.Info" />
+        </MudTabPanel>
+
+        <MudTabPanel OnClick="stage1Completed" Disabled=@ItemsDisabled Text="2. קביעת ערך התחלתי">
+            <MudText Style="font-family:Fredoka;padding-top: 2rem;font-size:15px;">
+                יש להגדיר עבור כל מדד את ערכו ההתחלתי במשחק (בין 0 ל-100)
+                <p style="font-size:13px;">
+                    במידה ובחרת במדד "אחר" יש לקבוע את שמו כך שיתאים לקבלת ערך מספרי (בין 2 ל-20 תווים)
+                </p>
+            </MudText>
+            <br />
+          @*  @foreach (var item in _items.Where(i => i.Identifier == "Drop Zone 2"))
+            {
+                nameValue = item.Name;
+                <div style="display: -webkit-box; font-family:Fredoka;">
+                    <div style="position:relative;">
+                        <MudNumericField @bind-Value="item.NumericValue" OnKeyUp="() => CheckNumericValue(item)" Variant="Variant.Outlined" />
+                        <p style="color: red;padding-top: 0.5rem;">@item.Msg</p>
+                        <label style="position: absolute;left: 2rem;top: 1rem;">
+                            @if (nameValue == "אחר")
+                            {
+                                <input type="text" @bind="@item.Name" style="font-family:Fredoka; width: 50%;margin-right: 5.8rem; text-align: center; background-color:#F7F6F0;" Variant="Variant.Outlined">
+                            }
+                            else
+                            {
+                                @item.Name
+                            }
+                        </label>
+                    </div>
+                </div>
+            }*@
+
+
+            @foreach (var item in _items.Where(i => i.Identifier == "Drop Zone 2"))
+            {
+                nameValue = item.Name;
+                <div style="display: -webkit-box; font-family:Fredoka;font-size: 15px;">
+                    <div style="position:relative;">
+                        <input id="NUMwidth" type="number"
+                           value="@item.NumericValue"
+                           style="display: flex; width: 35vh;height:6vh;
+                    margin-top: 1vh; margin-right: auto; margin-left:auto; direction: ltr;
+                      border: 1px solid;
+                      border-radius: 3px;
+                      background: #EFEED8;
+                      text-align: right;
+                      padding-right: 1vh;"
+                           @oninput="(ChangeEventArgs args) =>
+                {
+                    if (int.TryParse(args.Value.ToString(), out int result))
+                    {
+
+                        item.NumericValue = result;
+                        CheckNumericValue(item);
+                    }
+                }" />
+                        <label style="position: absolute;right: 5.5rem; top: 60%; transform: translateY(-50%); font-family: Fredoka;padding-left: 2vh;line-break: anywhere;">
+                            @if (nameValue == "אחר")
+                            {
+                                <input type="text" @bind="@item.Name" style="width: 90%; text-align: right; background-color:#F7F6F0;" Variant="Variant.Outlined" />
+                            }
+                            else
+                            {
+                                @item.Name
+                            }
+                        </label>
+                    </div>
+                </div>
+                <p style="color: red;padding-top: 0.5rem;">@item.Msg</p>
+            }
+            <MudButton style="font-family:Fredoka;margin-bottom: 2rem;margin-top: 1rem;right: 85%;" Color="Color.Secondary" Variant="Variant.Filled" OnClick="Ready" Disabled=@isntInRange>שמירה</MudButton>
+        </MudTabPanel>
+
+
+
+    </MudTabs>
+
+</EditForm>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [Parameter]
+    public GameClass SavedGame { get; set; }
+    [Parameter]
+    public Action<GameClass> GameUpdatedCallback { get; set; }
+    [Inject]
+    public IJSRuntime JSRuntime { get; set; }
+    Resource NewResource = new Resource();
+    public bool isReady = false;
+    private DropItem? _draggedItem;
+    private List<DropItem> _items;
+    MudTabs tabs;
+    public bool ItemsDisabled = true;
+    public string nameValue = "";
+    public bool isWithData = false;
+    public bool isntInRange = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _items = new List<DropItem>()
+    {
+        new DropItem(){ Name = "שביעות רצון לקוחות", Identifier = "Drop Zone 1" },
+        new DropItem(){ Name = "הספק עבודה", Identifier = "Drop Zone 1" },
+        new DropItem(){ Name = "מוטיבציית עובדים", Identifier = "Drop Zone 1" },
+        new DropItem(){ Name = "שווי המוצר", Identifier = "Drop Zone 1" },
+        new DropItem(){ Name = "אמון לקוחות", Identifier = "Drop Zone 1" },
+        new DropItem(){ Name = "שביעות רצון עובדים", Identifier = "Drop Zone 1" },
+        new DropItem(){ Name = "אהדת הקהל", Identifier = "Drop Zone 1" },
+        new DropItem(){ Name = "למידת העובדים", Identifier = "Drop Zone 1" },
+        new DropItem(){ Name = "חדשנות", Identifier = "Drop Zone 1" },
+        new DropItem(){ Name = "יחסי עבודה", Identifier = "Drop Zone 1" },
+        new DropItem(){ Name = "רווח", Identifier = "Drop Zone 1" },
+        new DropItem(){ Name = "אחר", Identifier = "Drop Zone 1" },
+        new DropItem(){ Name = "אחר", Identifier = "Drop Zone 1" },
+        new DropItem(){ Name = "אחר", Identifier = "Drop Zone 1" }
+    };
+
+        await GetScalesFromDB();
+    }
+
+    public async Task GetScalesFromDB()
+    {
+        isWithData = true;
+        var getResponse = await Http.GetAsync("api/Game/getScalesById/" + SavedGame.Id);
+        if (getResponse.IsSuccessStatusCode)
+        {
+            List<Scales> scalesToShow = await getResponse.Content.ReadFromJsonAsync<List<Scales>>();
+
+            foreach (var scale in scalesToShow)
+            {
+                var itemToRemove = _items.FirstOrDefault(item => item.Name == scale.ScaleName);
+                if (itemToRemove != null)
+                {
+                    if (itemToRemove.Identifier == "Drop Zone 1" && itemToRemove.Name != scale.ScaleName)
+                    {
+                        _items.Remove(itemToRemove);
+                    }
+                    else if (itemToRemove.Identifier != "Drop Zone 2")
+                    {
+                        itemToRemove.Identifier = "Drop Zone 2";
+                        itemToRemove.NumericValue = scale.Value;  // Add this line to update the NumericValue
+                    }
+                }
+                else
+                {
+                    _items.Add(new DropItem()
+                        {
+                            Name = scale.ScaleName,
+                            Identifier = "Drop Zone 2",
+                            NumericValue = scale.Value
+                        });
+                }
+            }
+            if (_items.Count(item => item.Identifier == "Drop Zone 2") >= 3){
+                ItemsDisabled = false;
+            } else {
+                ItemsDisabled = true;
+            }
+            GetDropZone2ColorClass();
+        }
+    }
+
+    void Activate(int index)
+    {
+        tabs.ActivatePanel(index);
+    }
+
+    private string GetDropZone2ColorClass()
+    {
+        if (_items.Count(item => item.Identifier == "Drop Zone 2") >= 3)
+        {
+            return "rounded pa-6 ma-8 flex-grow-1 dropzone-full-color";
+        }
+        if (_items.Count(item => item.Identifier == "Drop Zone 2") <= 2)
+        {
+            return "rounded mud-background-gray pa-6 ma-8 flex-grow-1";
+        }
+        return "rounded mud-background-gray pa-6 ma-8 flex-grow-1";
+    }
+
+    //private void ItemUpdated(MudItemDropInfo<DropItem> dropItem)
+    //{
+    //    if (dropItem.Item != null && dropItem.DropzoneIdentifier != null)
+    //    {
+    //        dropItem.Item.Identifier = dropItem.DropzoneIdentifier;
+    //    }
+    //    else if (dropItem.Item != null && dropItem.DropzoneIdentifier == null)
+    //    {
+    //        dropItem.Item.Identifier = "";
+    //    }
+    //    if (_items.Count(item => item.Identifier == "Drop Zone 2") >= 3)
+    //    {
+    //        ItemsDisabled = false;
+    //        //stage1Completed();
+    //    }
+    //    if (_items.Count(item => item.Identifier == "Drop Zone 2") <= 2)
+    //    {
+    //        ItemsDisabled = true;
+    //    }
+
+    //    if (_items.Count(item => item.Identifier == "Drop Zone 2") > 5)
+    //    {
+    //        ItemsDisabled = false;
+    //        // Set the dropzone identifier back to the previous value
+    //        dropItem.Item.Identifier = "Drop Zone 1";
+    //    }
+    //}
+    private void ItemUpdated(MudItemDropInfo<DropItem> dropItem)
+    {
+        if (dropItem.Item != null && dropItem.DropzoneIdentifier != null)
+        {
+            // Check if the item is moved from Zone 2 to Zone 1
+            if (dropItem.Item.Identifier == "Drop Zone 2" && dropItem.DropzoneIdentifier == "Drop Zone 1")
+            {
+                dropItem.Item.Identifier = "Drop Zone 1";
+                // Delete the item from the database
+                DeleteItemFromDatabase(dropItem.Item);
+            }
+            else
+            {
+                // Check the count of items in Zone 2
+                var zone2ItemCount = _items.Count(item => item.Identifier == "Drop Zone 2");
+
+                if (dropItem.DropzoneIdentifier == "Drop Zone 2" && zone2ItemCount >= 5)
+                {
+                    // Prevent adding more than 5 items in Zone 2
+                    return;
+                }
+
+                dropItem.Item.Identifier = dropItem.DropzoneIdentifier;
+            }
+        }
+        else if (dropItem.Item != null && dropItem.DropzoneIdentifier == null)
+        {
+            dropItem.Item.Identifier = "";
+        }
+
+        // Check the count of items in Zone 2 and enable/disable the button accordingly
+        if (_items.Count(item => item.Identifier == "Drop Zone 2") >= 3)
+        {
+            ItemsDisabled = false;
+        }
+        else
+        {
+            ItemsDisabled = true;
+        }
+
+        GetDropZone2ColorClass();
+    }
+
+
+    private async Task DeleteItemFromDatabase(DropItem item)
+    {
+        // Delete the item from the database using its unique identifier or other properties
+        // Example: Assuming you have an API endpoint for deleting the item, you can make a DELETE request to the endpoint
+        var deleteResponse = await Http.DeleteAsync("api/Game/deleteItem/" + item.Name);
+
+        if (deleteResponse.IsSuccessStatusCode)
+        {
+            // Item successfully deleted from the database
+        }
+        else
+        {
+            // Failed to delete the item from the database, handle the error accordingly
+        }
+    }
+
+
+    private async Task BackToBoard()
+    {
+        string isReadyString = await JSRuntime.InvokeAsync<string>("sessionStorage.getItem", "isReady");
+        bool isReady = !string.IsNullOrEmpty(isReadyString) && bool.Parse(isReadyString);
+
+        if (isWithData == true && _items.Count(item => item.Identifier == "Drop Zone 2") >= 3 && isReady)
+        {
+            navigationManager.NavigateTo($"EditorBoard/" + SavedGame.Id);
+        }
+        if (isReady == false || _items.Count(item => item.Identifier == "Drop Zone 2") <= 2)
+        {
+            var parameters = new DialogParameters();
+            parameters.Add("ContentText", "חזרה ללוח תתאפשר רק לאחר השלמת שני השלבים ולחיצה על שמירה");
+            parameters.Add("ButtonText", "אישור");
+            parameters.Add("Color", Color.Secondary);
+
+            var options = new DialogOptions() { CloseButton = false, MaxWidth = MaxWidth.ExtraSmall, NoHeader = true };
+            var dialog = DialogService.Show<BackToBoard2>("", parameters, options);
+            var result = await dialog.Result;
+        }
+        else
+        {
+            GameUpdatedCallback?.Invoke(SavedGame);
+            navigationManager.NavigateTo($"EditorBoard/" + SavedGame.Id);
+        }
+    }
+
+    private async Task stage1Completed()
+    {
+        var getResponse = await Http.GetAsync("api/Game/getScalesById/" + SavedGame.Id);
+        if (getResponse.IsSuccessStatusCode)
+        {
+            List<Scales> scalesToShow = await getResponse.Content.ReadFromJsonAsync<List<Scales>>();
+            if (_items.Count(item => item.Identifier == "Drop Zone 2") != 0 && isWithData == false)
+            {
+                var dropZoneItems = _items.Where(i => i.Identifier == "Drop Zone 2").ToList();
+
+                for (int i = 0; i < dropZoneItems.Count; i++)
+                {
+                    var item = dropZoneItems.ElementAtOrDefault(i);
+                    var scale = scalesToShow.ElementAtOrDefault(i);
+
+                    if (item != null && scale != null)
+                    {
+                        var getResponse4 = await Http.GetAsync("api/Game/updateScale/" + scale.Id + "/" + item.Name + "/" + item.NumericValue);
+                        if (getResponse4.IsSuccessStatusCode)
+                        {
+                            // TODO: ADD A CHECK TO THE STAGE
+                        }
+                    }
+                }
+
+                foreach (var item in _items.Where(i => i.Identifier == "Drop Zone 2"))
+                {
+                    var postResponse = await Http.PostAsJsonAsync<int>("api/Game/addScale/" + SavedGame.Id, SavedGame.Id);
+                }               
+            }
+
+            if (isWithData == true)
+            {
+                var itemsToAdd = _items.Where(i => i.Identifier == "Drop Zone 2").DistinctBy(i => i.Name).ToList();
+                var addedItems = new List<DropItem>();
+
+                foreach (var item in itemsToAdd)
+                {
+                    // Check if the scale with the same name already exists in scalesToShow
+                    bool scaleExists = scalesToShow.Any(scale => scale.ScaleName == item.Name);
+                    bool itemAdded = addedItems.Contains(item);
+                    if (!scaleExists && !itemAdded)
+                    {
+                        addedItems.Add(item);
+                    }
+                }
+                foreach (var add in addedItems)
+                {
+                    var postResponse = await Http.PostAsJsonAsync<int>("api/Game/addScale/" + SavedGame.Id, SavedGame.Id);
+                    if (postResponse.IsSuccessStatusCode)
+                    {
+                        // Update scalesToShow after adding a new scale
+                        scalesToShow.Add(new Scales
+                            {
+                                ScaleName = add.Name,
+                                Value = add.NumericValue
+                            });
+                    }
+                }
+            }
+        }    
+    }
+
+    void CheckNumericValue(DropItem item)
+    {
+        if (item.NumericValue >= 0 && item.NumericValue <= 100)
+        {
+            item.Msg = "";
+            isntInRange = false;
+        }
+        else
+        {
+            item.Msg = "יש להזין ערך בטווח שבין 0 ל-100";
+            isntInRange = true;
+        }
+    }
+
+
+    private async Task Ready()
+    {
+        isReady = true;
+        await JSRuntime.InvokeVoidAsync("sessionStorage.setItem", "isReady", isReady.ToString());
+
+        var getResponse = await Http.GetAsync("api/Game/getScalesById/" + SavedGame.Id);
+        if (getResponse.IsSuccessStatusCode)
+        {
+            List<Scales> scalesToShow = await getResponse.Content.ReadFromJsonAsync<List<Scales>>();
+            if (scalesToShow.Count >= 3)
+            {
+                var dropZoneItems = _items.Where(i => i.Identifier == "Drop Zone 2").ToList();
+
+                for (int i = 0; i < dropZoneItems.Count; i++)
+                {
+                    var item = dropZoneItems.ElementAtOrDefault(i);
+                    var scale = scalesToShow.ElementAtOrDefault(i);
+
+                    if (item != null && scale != null)
+                    {
+                            var getResponse4 = await Http.GetAsync("api/Game/updateScale/" + scale.Id + "/" + item.Name + "/" + item.NumericValue);
+                            if (getResponse4.IsSuccessStatusCode)
+                            {
+                                // TODO: ADD A CHECK TO THE STAGE
+                            }
+                    }
+                }
+                GameUpdatedCallback?.Invoke(SavedGame);
+                navigationManager.NavigateTo($"EditorBoard/" + SavedGame.Id);
+            }
+        }
+    }
+
+
+    public class DropItem
+    {
+        public string Name { get; set; } = "";
+        public string Identifier { get; set; } = "";
+        public string Msg { get; set; } = "";
+        public int NumericValue { get; set; }
+    }
+}

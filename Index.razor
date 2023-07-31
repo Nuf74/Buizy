@@ -1,0 +1,483 @@
+﻿@page "/{gameId:int}"
+@using Microsoft.AspNetCore.SignalR.Client
+@using System.ComponentModel.DataAnnotations
+@inject HttpClient Http
+@inject IDialogService DialogService
+@inject NavigationManager navigationManager
+@inject IJSRuntime JSRuntime
+@implements IAsyncDisposable
+@using NufarMeir_GalOxenberg.Client.Components
+@using NufarMeir_GalOxenberg.Shared.DTOs;
+
+<PageTitle>Buizy Game</PageTitle>
+
+<style>
+    .mud-button-root:disabled {
+        opacity: 0.6;
+        color: gray !important;
+        cursor: default;
+        pointer-events: none;
+    }
+
+    .btn-primary {
+        color: #fff;
+        background-color: #A7BF4E;
+        border-color: #A7BF4E;
+    }
+
+        .btn-primary:hover {
+            color: #12273D;
+            background-color: #D9E5A8;
+            border-color: #D9E5A8;
+        }
+
+    .form-control-lg {
+        min-height: calc(1.5em + 1rem + -15px);
+        padding: 0.5rem 1rem;
+        font-size: 1.25rem;
+    }
+
+    .select-wrapper {
+        position: relative;
+        display: inline-block;
+        width: 30%;
+    }
+
+        .select-wrapper::after {
+            content: '\25BC'; /* Unicode character for down arrow */
+            position: absolute;
+            top: 50%;
+            right: 10px;
+            transform: translateY(-50%);
+            color: #000;
+            pointer-events: none;
+        }
+
+</style>
+
+<section class="vh-100" style="background-color: #12273D; font-family:Fredoka">
+  <div class="container py-2 h-100">
+
+        <div style="right: 87vh;
+    top: 2vh;
+    position: relative;
+    float: left;
+    transform: scale(0.11);
+    width: -webkit-fill-available;">
+        <img src="images/Newlogo.png" style="position: absolute;" />
+        </div>
+        <MudButton OnClick="openAboutUs" Style="background-color:#12273D; border-radius: 3rem; box-shadow: 0 15px 15px 0 rgba(9, 20, 30, 1), 0 7px 7px 0 rgba(9, 20, 30, 1); color:white; font-family:Fredoka; justify-content: flex-end; position: fixed; top: 15vh; right: 88vw; font-weight: 400;">מי אנחנו?</MudButton>
+
+        <div class="row d-flex justify-content-center align-items-center h-100">
+      <div class="col-12 col-sm-12 col-md-8 col-lg-6 col-xl-5">
+                <div class="card shadow-2-strong" style="background-color:#12273D; border-radius: 3rem; box-shadow: 0 15px 15px 0 rgba(9, 20, 30, 1), 0 7px 7px 0 rgba(9, 20, 30, 1); top:5vh">
+          <div class="card-body px-4 text-center">
+
+    <h4 class="mb-5" style="color:#A7BF4E">כניסה למשחק @gameName</h4>
+
+    <EditForm Model="NewUser" OnValidSubmit="Ready">
+    <DataAnnotationsValidator />
+    <div class="form-outline mb-4">
+
+     <input type="name" @bind="NewUser.Name" @bind:event="oninput" @onkeyup="IsTypeCheck" @onkeydown="EnterPrevent" placeholder=@placeHolder disabled=@(IsFull || @isDone) class="form-control form-control-lg @isValid">
+     <p style="color:white">@msg</p>
+
+<p style="color:white; display:inline-block; margin-top:3vh;font-size: 15px;" hidden=@IsFirst>
+    היי! נכנסת ראשונ/ה למשחק, כמה תהיו בקבוצה?
+    <div class="select-wrapper">
+        <select id="NUMwidth" class="form-control form-control-lg"
+            @bind="@usersLimit" style="margin-right: auto; margin-left:auto; direction: ltr;
+            border: 1px solid; border-radius: 3px; background: #EFEED8;
+            text-align: center; margin-top: 1.2vh; font-size: 15px;">
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+        </select>
+    </div>
+</p>
+
+     @if (isValid == "is-invalid" && IsExists == false && IsFull == false && IsType == false)
+     {
+     <div class="invalid-feedback">הכינוי צריך להכיל 2-7 תווים</div>
+     }
+     else
+     {
+     <div class="valid-feedback"></div>
+     }
+      @if (IsExists == true)
+      {
+           isValid = "is-invalid";
+            <div class="invalid-feedback">אופס, הכינוי הזה כבר קיים</div>
+      }
+     
+     @if (IsFull == true)
+      {
+      isValid = "is-invalid";
+       <div class="invalid-feedback">המשחק הנוכחי כבר מלא, כדאי לנסות שוב מאוחר יותר</div>
+    }
+    </div>
+
+            <div class="row mb-0 pb-4" style="position:center">
+                <div class="col d-flex justify-content-center">
+
+                @if (IsFirst) 
+                {
+                    @if (IsReady == true || !IsConnected || IsType == false || IsExists == true)
+                    {
+                    <div class="cols-sm-6 mx-2">
+                        <button type="button" class="btn btn-secondary btn-md" disabled>בחרתי כינוי</button>
+                       @if (IsReady && IsFirst) { 
+                        <p style="color:white; display:inline-block; margin-top:3vh;font-size: 13px;">
+                            @{
+                                string firstName = users.First().Name;
+                            }
+                              נמתין עד שכל השחקנים והשחקניות יצטרפו והמשחק יופעל ע"י @firstName
+                            </p>
+                       }
+                        </div>               
+                    }
+                   else 
+                   {
+                    <div class="cols-sm-6 mx-2">
+                        <button type="button" class="btn btn-primary btn-md" @onclick="Ready" disabled=@IsExists>בחרתי כינוי</button>
+                    </div>
+                   }
+               }
+               else
+               {
+                    @if (IsReady == true || !IsConnected || IsType == false || IsExists == true)
+                    {
+                        if (!IsReady)
+                        {
+                        <div class="cols-sm-6">
+                            <button type="button" class="btn btn-secondary btn-md" hidden>בחרתי כינוי</button>
+                        </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="cols-sm-6 mx-2">
+                            <button type="button" class="btn btn-primary btn-md" @onclick="Ready" disabled=@IsExists>בחרתי כינוי</button>
+                        </div>
+                    }
+               }
+
+                @if (!IsFirst)
+                {
+                        @if (users.Count == usersLimit)
+                        {
+                        <div class="cols-sm-6 mx-2"><button type="button" class="btn btn-success btn-md" @onclick="Start">התחלת משחק</button> </div>
+                        }
+                        else if (users.Count != usersLimit)
+                        {
+                        <div class="cols-sm-6 mx-2"><button type="button" class="btn btn-secondary btn-md" disabled>התחלת משחק</button> </div>
+                        }
+                }
+           
+
+                 </div>              
+           </div>
+           
+           
+     <div class="row justify-content-sm-center" id="usersList"> 
+        @foreach (var u in users)
+        {
+            if (u.Name != NewUser.Name)
+        {
+            if (placeHolder != u.Name){
+                IsExists = false;
+                <p class="col-sm-3 mx-1" style="border: 1px solid #A7BF4E; color:white; border-radius:5px; margin-bottom:0.5rem;">@u.Name כאן</p>
+            } 
+        }
+        else
+        {
+            IsExists = true;
+            <p class="col-sm-3 mx-1" style="border: 1px solid orangered; color:white; border-radius:5px; margin-bottom:0.5rem;" hidden=@isStored>@u.Name כאן</p>
+        }
+
+        }
+     </div>
+
+    </EditForm>
+                    </div>
+                </div>
+            </div>
+            <MudButton Style="background-color: #12273D;
+    border-radius: 3rem;
+    box-shadow: 0 15px 15px 0 rgba(9, 20, 30, 1), 0 7px 7px 0 rgba(9, 20, 30, 1);
+    color: rgb(223,102,33);
+    font-family: Fredoka;
+    text-align: center;
+    position: fixed;
+    bottom: 10vh;
+    left: 88vw;
+    width: fit-content;
+    font-weight: 400;" OnClick="DONE" Disabled=@(users.Count == 0)>איפוס</MudButton>
+        </div>    
+    </div>
+</section>
+
+@code {
+    private HubConnection? hubConnection;
+    [Parameter]
+    public int gameId { get; set; } 
+    User NewUser = new User();
+    private List<User> users = new List<User>();
+    bool IsReady = false;
+    string msg = "";
+    bool IsType = false;
+    bool IsFull = false;
+    bool IsExists = false;
+    bool isEnter = false;
+    string isValid = "";
+    bool isDone = false;
+    string placeHolder = "כאן בוחרים כינוי";
+    string gameName = "";
+    bool IsFirst = true;
+    int usersLimit = 2;
+    bool isStored = false;
+    string storedName;
+
+    void IsTypeCheck() 
+    {
+        foreach (var u in users) 
+        {
+            if (u.Name == NewUser.Name || u.Name == NewUser.Name + " ")
+            {
+                IsExists = true;
+                isValid = "is-invalid";
+            }
+        }
+
+        msg = "";
+
+        if (NewUser.Name.Length < 2 || NewUser.Name.Length >= 7)
+        {
+            isValid = "is-invalid";
+            IsType = false;
+        }
+        else
+        {
+            IsType = true;
+            if (IsExists == false)
+            {
+                isValid = "is-valid";
+            }
+        }
+        StateHasChanged();
+    }
+
+    void EnterPrevent(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && IsReady==true)
+        {
+            isEnter = true;
+        }
+
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        //await JSRuntime.InvokeVoidAsync("handleResize");
+
+        var getResponse = await Http.GetAsync("api/User/" + gameId);
+        if (getResponse.IsSuccessStatusCode == true)
+        {
+            var usersLoggedIn = getResponse.Content.ReadFromJsonAsync<List<User>>().Result;
+            if (usersLoggedIn != null)
+            {
+                users = usersLoggedIn;
+                StateHasChanged();
+                if (users.Count >= 6)
+                {
+                    IsFull = true;
+                    isValid = "is-invalid";
+                }
+                if (users.Count == 0)
+                {
+                    IsFirst = true;
+                }
+                else if (users.Count >= 1)
+                {
+                    IsFirst = true;
+                }
+            }
+        }
+
+
+
+        // Retrieve the user's name from sessionStorage
+        storedName = await JSRuntime.InvokeAsync<string>("sessionStorage.getItem", "userName");
+        if (!string.IsNullOrEmpty(storedName))
+        {
+            NewUser.Name = storedName;
+            isValid = "is-valid";
+            isDone = true;
+            isStored = true;
+            if(users.Count > 0){
+                if (users[0].Name == storedName)
+                {
+                    IsFirst = false;
+                }
+            }
+
+        }
+
+        var getResponse2 = await Http.GetAsync("api/Game/gametoshow/" + gameId);
+        if (getResponse2.IsSuccessStatusCode == true)
+        {
+            var gameNameFromDB = getResponse2.Content.ReadFromJsonAsync<GameClass>().Result;
+            if (gameNameFromDB != null)
+            {
+                gameName = gameNameFromDB.GameName;
+            }
+        }
+
+        hubConnection = new HubConnectionBuilder()
+                .WithUrl(navigationManager.ToAbsoluteUri("./game"))
+                .Build();
+
+        hubConnection.On("login", async () =>
+        {
+            var getResponse = await Http.GetAsync("api/User/" + gameId);
+
+            if (getResponse.IsSuccessStatusCode == true)
+            {
+                var usersLoggedIn = getResponse.Content.ReadFromJsonAsync<List<User>>().Result;
+                if (usersLoggedIn != null)
+                {
+                    users = usersLoggedIn;
+                    StateHasChanged();
+                }
+            }
+
+        });
+
+
+        hubConnection.On("start", async () =>
+            {
+                if (IsReady == true)
+                {
+                    var parameters = new DialogParameters();
+                    parameters.Add("placeHolder", placeHolder);
+                    parameters.Add("gameId", gameId);
+                    var options = new DialogOptions() { MaxWidth = MaxWidth.Medium, CloseOnEscapeKey = false, CloseButton = false, DisableBackdropClick = true };
+                    var dialog = DialogService.Show<HowToPlay>("", parameters, options);
+                } 
+            });
+
+
+        hubConnection.On("Reset", async () =>
+        {
+            await DONE2();
+        });
+
+        await hubConnection.StartAsync();
+    } 
+
+    public async Task DONE()
+    {
+        var parameters = new DialogParameters();
+        parameters.Add("ContentText2", "כדאי לשים לב!");
+        parameters.Add("ContentText", "במידה והתחיל משחק, האיפוס ימחק את הנתונים הקיימים בו וידרוש כניסה מחדש");
+        parameters.Add("ButtonText", "איפוס");
+        parameters.Add("Color", Color.Primary);
+
+        var options = new DialogOptions() { CloseButton = false, MaxWidth = MaxWidth.ExtraSmall };
+        var dialog = DialogService.Show<Reset>("", parameters, options);
+
+        var result = await dialog.Result;
+        if (!result.Cancelled)
+        {
+            if (users.Count > 0)
+            {
+                await hubConnection.SendAsync("ResetNumbersOfSubmitted");
+            }
+        }
+    }
+
+
+    public async Task DONE2()
+    {
+        //Reset all game data
+        var getResponse6 = await Http.GetAsync("api/Game/questionsReset/" + gameId);
+        var getResponse7 = await Http.GetAsync("api/Game/unexpectedReset/" + gameId);
+
+        var getResponse = await Http.GetAsync("api/User/getIdAndName/" + gameId);
+        if (getResponse.IsSuccessStatusCode)
+        {
+            var usersLoggedIn = await getResponse.Content.ReadFromJsonAsync<List<User>>();
+            foreach (var u in usersLoggedIn)
+            {
+                var getResponse9 = await Http.DeleteAsync("api/Game/emptyScores/" + u.Id);
+
+                if (getResponse9.IsSuccessStatusCode != true)
+                {
+                    throw new Exception("Failed to delete User");
+                }
+            }
+        }
+
+        var getResponse8 = await Http.DeleteAsync("api/Game/emptyUsers/" + gameId);
+        if (getResponse8.IsSuccessStatusCode == true)
+        {
+            storedName = await JSRuntime.InvokeAsync<string>("sessionStorage.removeItem", "userName");
+            StateHasChanged();
+            navigationManager.NavigateTo("https://projects.telem-hit.net/2023/Buizy_NufarGal");
+        }
+    }
+
+    private async Task Ready()
+    {   
+        if (users.Count == 0)
+        {
+            IsFirst = false;
+        }
+        IsReady = true;
+        if (isEnter==false){  
+            if (hubConnection is not null)
+            {
+                var postResponse = await Http.PostAsJsonAsync("api/User/addUser/" + NewUser.Name +"/"+ gameId, NewUser.Name);
+                if (postResponse.IsSuccessStatusCode != true)
+                {
+                    throw new Exception("");
+                }
+                await hubConnection.SendAsync("LoginUser");
+            }
+        }
+
+        placeHolder = NewUser.Name;
+        NewUser.Name = "";
+        isDone = true;      
+
+        // Save the user's name to sessionStorage
+        await JSRuntime.InvokeVoidAsync("sessionStorage.setItem", "userName", placeHolder);
+    }
+
+    private async Task Start()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("StartGame");
+        }
+    }
+
+    public bool IsConnected =>
+        hubConnection?.State == HubConnectionState.Connected;
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
+
+    public async void openAboutUs(){
+        var options = new DialogOptions() { MaxWidth = MaxWidth.Small, CloseOnEscapeKey = false, CloseButton = false, DisableBackdropClick = true };
+        var dialog = DialogService.Show<AboutUs>("", options);
+    }
+
+}

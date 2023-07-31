@@ -1,0 +1,49 @@
+﻿@using NufarMeir_GalOxenberg.Shared.DTOs
+@inject HttpClient Http
+<PageTitle>Back to board</PageTitle>
+<style>
+    .mud-typography mud-typography-body1 mud-secondary-text {
+        font-family: 'Fredoka';
+        color: rgb(66,66,66);
+    }
+
+    .mud-dialog-content {
+        height: unset;
+    }
+
+    .mud-dialog .mud-dialog-actions {
+        padding-bottom: 1vh;
+    }
+
+</style>
+<MudDialog Style="overflow:hidden;">
+    <DialogContent>
+        <MudText Class="popUp"><p style="justify-content:center; font-family:Fredoka;">@ContentText</p></MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="@Color" Variant="Variant.Filled" Style="font-family:Fredoka;" @onclick=DeleteAns>@ButtonText</MudButton>
+    </DialogActions>
+</MudDialog>
+@code {
+
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public string ContentText { get; set; }
+
+    [Parameter] public string ButtonText { get; set; }
+
+    [Parameter] public Color Color { get; set; }
+
+    [Parameter] public Answer answerToDelete { get; set; }
+
+
+    void Cancel() => MudDialog.Cancel();
+
+
+
+    void DeleteAns()
+    {
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+}

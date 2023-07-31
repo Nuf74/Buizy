@@ -1,0 +1,887 @@
+﻿@using Microsoft.AspNetCore.SignalR.Client
+@using NufarMeir_GalOxenberg.Shared.DTOs
+@using NufarMeir_GalOxenberg.Client.Components
+@using Microsoft.JSInterop;
+@inject IJSRuntime JSRuntime
+@inject IDialogService DialogService
+@inject NavigationManager navigationManager
+@inject HttpClient Http
+
+<style>
+    :root{
+        --bs-success-rgb: 130,189,80;
+        --bs-warning-rgb: 235,232,126;
+        --bs-danger-rgb: 223,102,33;
+    }
+</style>
+
+@page "/GameBoard/{user}/{gameId:int}"
+<section class="vh-100 container-fluid" style="background-color:#12273D; position: fixed;">
+    <PageTitle>Buizy Game</PageTitle>
+
+    <div style="display: flex; justify-content: center; align-items: center; text-align:center;" class="container">
+        <div class="playerName p-1 ali" style="color:white; display:grid; justify-content:center; width:40%; background-color:@addBorder;border-radius: 0px 0px 20px 20px; 
+    top: 0px;
+    width: 25%;
+    height: 12%;
+    box-shadow: 0 15px 15px 0 rgba(9, 20, 30, 1), 0 7px 7px 0 rgba(9, 20, 30, 1);">
+            <p style="color:white; border-radius:5px;font-size:17px;padding-bottom: 0.6vh;" class="mb-0">@user</p>
+            <p style="background-color:#285B54; color:white; border-radius:7px; text-center; padding-left: 0.3rem; padding-right: 0.3rem;font-size:15px;">ניקוד: @grade</p>
+       </div>
+    </div>
+
+
+    <div class="honeycomb cols-sm-3" style="transform:@rotate; margin-right: 3.5rem; margin-top:@marginTop; scale:78%">
+            <div class="ibws-fix">
+            @if (GameDetails.CardsQuantity == 12)
+            {
+                rotate = "";
+                marginTop = "1.5rem";
+                var contentCount = mixedHexContent.Count;
+                @for (int i = 0; i < GameDetails.CardsQuantity / 6; i++)
+                {
+                    <div class="fluid w-85">
+                        @for (int j = 0; j < 6; j++)
+                        {
+                            var index = (i * 6) + j;
+                            if (index >= contentCount) break; 
+                            var content = mixedHexContent[index];
+                            var isDisabled = content.Question?.hasAnswered ?? content.UnexpectedElement?.hasAnswered ?? false;
+                            var hexagonClass = isDisabled ? "hexagon hexagon-disabled" : "hexagon";
+                            <div @onclick="@(e => {
+                        if (isMyTurn) {
+                            hexClick(content);
+                        }
+                    })" class="@hexagonClass">
+                                <div class="hexagontent">
+                                    <img src="images/hexLogo.png" style="scale: 60%; opacity: 80%;" />
+                                </div>
+                            </div>
+                        }
+                        
+                    </div>
+                }
+            }
+
+            @if (GameDetails.CardsQuantity == 9)
+            {
+                rotate = "rotate(90deg)";
+                marginTop = "";
+                var contentCount = mixedHexContent.Count;
+                @for (int i = 0; i < GameDetails.CardsQuantity / 3; i++)
+                {
+                    <div class="container-fluid w-85">
+                        @for (int j = 0; j < 3; j++)
+                        {
+                            var contentIndex = (i * 3) + j;
+                            if (contentIndex >= contentCount) break; 
+                            var content = mixedHexContent[contentIndex];
+                            var isDisabled = content?.Question?.hasAnswered ?? content?.UnexpectedElement?.hasAnswered ?? false;
+                            var hexagonClass = isDisabled ? "hexagon hexagon-disabled" : "hexagon";
+                        <div @onclick="@(e => {
+                            if (isMyTurn){
+                                hexClick(content);
+                                }
+                            })" class="@hexagonClass">
+                              <div class="hexagontent">
+                                    <img src="images/hexLogo.png" style="scale: 60%; transform:rotate(270deg); opacity: 80%;" />
+                              </div>
+                        </div>
+                        }
+                    </div>
+                }
+            }
+
+            
+            @if (GameDetails.CardsQuantity == 6)
+            {
+                rotate = "";
+                marginTop = "1.5rem";
+                var contentCount = mixedHexContent.Count;
+                @for (int i = 0; i < GameDetails.CardsQuantity / 3; i++)
+                {
+                    <div class="container-fluid w-85">
+                        @for (int j = 0; j < 3; j++)
+                        {
+                            var contentIndex = (i * 3) + j;
+                            if (contentIndex >= contentCount) break; 
+                            var content = mixedHexContent[contentIndex];
+                            var isDisabled = content?.Question?.hasAnswered ?? content?.UnexpectedElement?.hasAnswered ?? false;
+                            var hexagonClass = isDisabled ? "hexagon hexagon-disabled" : "hexagon";
+                        <div @onclick="@(e => {
+                            if (isMyTurn){
+                                hexClick(content);
+                                }
+                            })" class="@hexagonClass">
+                              <div class="hexagontent">
+                                    <img src="images/hexLogo.png" style="scale: 60%; opacity: 80%;" />
+                              </div>
+                        </div>
+
+                        }
+                    </div>
+                }
+            }           
+    </div>
+</div>
+
+
+        <div class="row-cols-sm-2">
+        <img src="images/Newlogo.png" style="scale: 130%;
+    position: absolute;
+    top: 5%;
+    left: 22%;" />
+
+        @{
+        var counter = 0;
+                             @foreach (var u in users)
+        {
+            if (u.Name != user)
+            {
+                                            <div class="user-div" id="@u.Name" data-username="@u.Name" onclick="toggleVisibility('@u.Name')" @onmouseleave="async () => await getScales(u.Name)" @ontouchstart="async () => await getScales(u.Name)" style="background-color:@(u.Name == users[currentPlayerIndex].Name ? "#A7BF4E" : "rgba(213, 211,150, 0.21)");border-radius: 0px 20px 20px 0px; width:90%; margin-top:1rem; display: flex; flex-direction: column; justify-content: center; align-items: center; float:left; padding:0.25rem;">
+                                                    <p style="color:white; border-radius:5px;font-size:14px;" class="mb-0">@u.Name</p>
+                                                @if (userGrades.TryGetValue(u.Name, out double Pgrade))
+                        {
+                                           <p style="background-color:#285B54; color:white; border-radius:7px; font-size:12px; padding-left: 0.3rem; padding-right: 0.3rem">ניקוד: @Pgrade</p>
+                        }
+                        else
+                        {
+                                             <p style="background-color:#285B54; color:white; border-radius:7px; font-size:12px; padding-left: 0.3rem; padding-right: 0.3rem">ניקוד: 0</p>
+                        }
+                                        <div class="my-div" style="position: fixed; margin-left: 51%;">
+                                                <div style="top:@topOtherScales[counter]%;" class="scales px-2">
+                                                    @foreach (var scaleScore in scaleScores)
+                                {                                  
+                                    if (scaleScore.Score < 30)
+                                        {
+                                            barColor = "danger";
+                                        }
+                                        else if (scaleScore.Score > 31 && scaleScore.Score < 80)
+                                        {
+                                            barColor = "warning";
+                                        }
+                                        else
+                                        {
+                                            barColor = "success";
+                                        }
+                                                                <p style="font-size:x-small">@scaleScore.ScaleName</p>
+                                                            <div class="progress my-1" style="height:0.8rem;">
+                                                                    <div class="progress-bar bg-@barColor" style="width:@scaleScore.Score%; align-items:flex-start; color:black;" role="progressbar" aria-valuenow="@scaleScore.Score" aria-valuemin="0" aria-valuemax="100">@scaleScore.Score%</div>
+                                                                </div>
+                                }
+                                                                         </div>
+                                                                     </div>                 
+                                                             </div>
+                 counter++;
+            } 
+        }}
+    </div>
+
+        <div class="row-cols-sm-8">
+
+        <div class="market" style="height:14%;width:19%;">
+            <p>מצב השוק</p>
+            <div class="trafficlight" style="scale:22%;width: unset;height: unset;position:relative; top:33%; right:28%;">
+                <div class="red" style="opacity:@redOpacity"></div> 
+                <div class="yellow" style="opacity:@yellowOpacity"></div>
+                <div class="green" style="opacity:@greenOpacity"></div>
+            </div>
+            </div>
+
+        <div class="scales px-2" style="top:19%;height:56%;display:flex;flex-direction:column;justify-content:center;width:19%;">
+            @foreach (Scales s in scalesList)
+            {
+                if (s.Value < 30)
+                {
+                    barColor = "danger";
+                }
+                else if (s.Value > 31 && s.Value < 80)
+                {
+                    barColor = "warning";
+                }
+                else
+                {
+                    barColor = "success";
+                }
+                <div>
+                    <p style="font-size:11px">@s.ScaleName</p>
+                    <div class="progress my-1" style="height:0.8rem;">
+                        <div class="progress-bar bg-@barColor" style="width:@s.Value%; align-items:flex-start; color:black;" role="progressbar" aria-valuenow="@s.Value" aria-valuemin="0" aria-valuemax="100">@s.Value%</div>
+                    </div>
+                </div>
+            }
+        </div>
+
+
+        <div class="resources" style="top: 77%; height:21%;width:19%;place-items:center;max-height:80%; margin-bottom:auto; margin-top:auto;">
+           @foreach (Resource r in resourcesList)
+            {                
+                <div class="oneresource" style="height:90%;background:@r.ImageUrl;display: grid; place-items: center;">
+                <p style="color:white; font-size:@resourceFontSize; line-break: auto; direction: ltr;display:flex; justify-content:center;">   @r.Quantity.ToString("#,##0")  <br> @r.Type</p>
+            </div>           
+            }
+        </div>
+        </div>
+
+</section>
+
+@code {
+    private HubConnection? hubConnection;
+    [Parameter]
+    public int gameId { get; set; }
+    public GameToShow GameDetails = new GameToShow();
+    public string rotate = "";
+    public string barColor = "";
+    public string marginTop = "";
+    private List<User> users = new List<User>();
+    [Parameter]
+    public string user { get; set; } = "";
+    public List<Question> questions = new List<Question>();
+    public List<UnexpectedElement> unexpectedList = new List<UnexpectedElement>();
+    public List<HexContent> mixedHexContent = new List<HexContent>();
+    public List<Scales> scalesList = new List<Scales>();
+    public List<Scores> scoresListById = new List<Scores>();
+    public List<Resource> resourcesList = new List<Resource>();
+    public List<int> topOtherScales = new List<int>() { 15, 32, 45, 45, 45};
+    public int initialResource;
+    List<ScaleScore> scaleScores = new List<ScaleScore>();
+    List<int> scoreFromSqlScales = new List<int>();
+    //private string username;
+    public double grade = 0;
+    public double Pgrade = 0;
+    List<double> eachUserGrade = new List<double>();
+    public double PlayerGrade = 0;
+    public double calcGrades = 0;
+    public double avgMarketStatus = 0;
+    public double yellowOpacity = 1;
+    public double redOpacity = 0.25;
+    public double greenOpacity = 0.25;
+    // Declare a dictionary to store the grades for each user
+    Dictionary<string, double> userGrades = new Dictionary<string, double>();
+    // Declare a flag to indicate whether mixedHexContent has been shuffled
+    private bool hasMixedContent = false;
+    public int currentPlayerIndex = 0; // Initialize to the first player
+    public bool isMyTurn;
+    public string addBorder = "";
+    public string unexpectedUser = "";
+    public string resourceFontSize= "";
+    public int bonus;
+    public bool isFirstQuestionId = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+        .WithUrl(navigationManager.ToAbsoluteUri("./game"))
+        .Build();
+
+        hubConnection.On<int?,int?>("hex", (questionId, unexpectedId) =>
+    {
+        if (questionId.HasValue)
+        {
+            var parameters = new DialogParameters();
+            parameters.Add("questionId", questionId.Value);
+            parameters.Add("user", user);
+            parameters.Add("gameId", gameId);
+            parameters.Add("usersCount", users.Count);
+            parameters.Add("ParentPage", this);
+            parameters.Add("isFirstQuestionId", isFirstQuestionId);
+            var options = new DialogOptions() { MaxWidth = MaxWidth.Small, CloseOnEscapeKey = false, CloseButton = false, DisableBackdropClick = true };
+            var dialog = DialogService.Show<DecisionRound>("", parameters, options);
+        }
+        else if (unexpectedId.HasValue)
+        {
+            var parameters = new DialogParameters();
+            parameters.Add("unexpectedId", unexpectedId.Value);
+            parameters.Add("unexpectedUser", unexpectedUser);
+            parameters.Add("user", user);
+            parameters.Add("ParentPage", this);
+            parameters.Add("gameId", gameId);
+            var options = new DialogOptions() { MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = false, CloseButton = false, DisableBackdropClick = true };
+            var dialog = DialogService.Show<UnexpectedComponent>("", parameters, options);
+        }
+    });
+
+        hubConnection.On<List<HexContent>>("HexContentsShuffled", hexContents =>
+    {
+        mixedHexContent = hexContents;
+        StateHasChanged();
+    });
+
+        hubConnection.On<List<HexContent>>("ReceiveHexContent", hexContent =>
+    {
+        mixedHexContent = hexContent;
+        StateHasChanged();
+    });
+
+        hubConnection.On("GradesUpdated", async () =>
+      {
+          await UpdateGrades();
+      });
+
+        hubConnection.On("TurnUpdated", async () =>
+        {
+            await UpdateTurn();
+        });
+
+        await hubConnection.StartAsync();
+
+        var getResponse2 = await Http.GetAsync("api/Game/scaleIdByGameId/" + gameId);
+        if (getResponse2.IsSuccessStatusCode == true)
+        {
+            var scalesIdFromSql = getResponse2.Content.ReadFromJsonAsync<List<int>>().Result;
+            if (scalesIdFromSql != null)
+            {
+                foreach (var ScaleId in scalesIdFromSql)
+                {
+                    var getResponse5 = await Http.GetAsync("api/Game/scalesById/" + ScaleId);
+                    if (getResponse5.IsSuccessStatusCode == true)
+                    {
+                        var scaleFromSql = getResponse5.Content.ReadFromJsonAsync<Scales>().Result;
+                        scalesList.Add(scaleFromSql);
+                        string requestUrl = "api/Game/updateInitialPlayersScales/";
+                        for (int i = 0; i < scalesList.Count; i++)
+                        {
+                            requestUrl += scalesList[i].Value;
+                            if (i < scalesList.Count - 1)
+                            {
+                                requestUrl += "/";
+                            }
+                        }
+
+                        var getResponse8 = await Http.GetAsync(requestUrl);
+                        if (getResponse8.IsSuccessStatusCode != true)
+                        {
+                            throw new Exception("Failed to update players scales");
+                        }
+                    }
+                }
+            }
+        }
+
+        var getResponse6 = await Http.GetAsync("api/Game/resourceIdByGameId/" + gameId);
+        if (getResponse6.IsSuccessStatusCode == true)
+        {
+            var resourceIdFromSql = getResponse6.Content.ReadFromJsonAsync<List<int>>().Result;
+            if (resourceIdFromSql != null)
+            {
+                foreach (var resourceId in resourceIdFromSql)
+                {
+                    var getResponse7 = await Http.GetAsync("api/Game/resourcesById/" + resourceId);
+                    if (getResponse7.IsSuccessStatusCode == true)
+                    {
+                        var resourceFromSql = getResponse7.Content.ReadFromJsonAsync<Resource>().Result;
+                        resourcesList.Add(resourceFromSql);
+                        foreach (var r in resourcesList)
+                        {
+                            r.ImageUrl = "rgba(130,189,80,0.5)";
+                        }
+                        if (resourceFromSql.Type.Length <= 7)
+                        {
+                            resourceFontSize = "10.1px";
+                        } 
+                        if (resourceFromSql.Type.Length >= 8 && resourceFromSql.Type.Length <=17)
+                        {
+                            resourceFontSize = "8px";
+                        }
+
+                    }
+                }
+            }
+        }
+
+        var getResponse = await Http.GetAsync("api/Game/gametoshow/" + gameId);
+        if (getResponse.IsSuccessStatusCode == true)
+        {
+            var GameFromSql = getResponse.Content.ReadFromJsonAsync<GameToShow>().Result;
+            if (GameFromSql != null)
+            {
+                GameDetails = GameFromSql;               
+            }
+        }
+
+        var getResponse3 = await Http.GetAsync("api/User/" + gameId);
+        if (getResponse3.IsSuccessStatusCode == true)
+        {
+            var usersLoggedIn = await getResponse3.Content.ReadFromJsonAsync<List<User>>();
+            if (usersLoggedIn != null)
+            {        
+                users = usersLoggedIn;
+                var userIdfromSQL = 0;
+                foreach (var u in usersLoggedIn)
+                {
+                    var getResponse9 = await Http.GetAsync("api/Game/getUserIdByName/" + u.Name);
+                    if (getResponse9.IsSuccessStatusCode == true)
+                    {
+                        userIdfromSQL = await getResponse9.Content.ReadFromJsonAsync<int>();
+                        var getResponse10 = await Http.GetAsync("api/Game/playerExistsInScores/" + userIdfromSQL);
+                        var existsInScores = await getResponse10.Content.ReadFromJsonAsync<bool>();
+                        if (!existsInScores)
+                        {
+                            var postResponse = await Http.PostAsJsonAsync<int>("api/Game/addPlayerToScores/" + userIdfromSQL, userIdfromSQL);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (avgMarketStatus < 30)
+        {
+            greenOpacity = 0.25;
+            yellowOpacity = 0.25;
+            redOpacity = 1;
+        }
+        else if (avgMarketStatus > 31 && avgMarketStatus < 70)
+        {
+            greenOpacity = 0.25;
+            yellowOpacity = 1;
+            redOpacity = 0.25;
+        }
+        else
+        {
+            greenOpacity = 1;
+            yellowOpacity = 0.25;
+            redOpacity = 0.25;
+        }
+
+        var currentUser = users.FirstOrDefault(u => u.Name == user);
+        if (currentUser != null)
+        {
+            isMyTurn = users.Count > 0 && users[currentPlayerIndex % users.Count].Name == currentUser.Name;
+        }
+        if (users[currentPlayerIndex].Name == user)
+        {
+            addBorder = "#A7BF4E";
+        }
+        else
+        {
+            addBorder = "#12273D";
+        }
+        unexpectedUser = users[currentPlayerIndex].Name;
+
+        RefreshHex();
+    }
+
+    public async Task hexClick(HexContent content)
+    {    
+        if (hubConnection is not null)
+        {
+            int? questionId = content.Question?.id;
+            int? unexpectedId = content.UnexpectedElement?.id;
+            if (questionId.HasValue || unexpectedId.HasValue)
+            {
+                await hubConnection.SendAsync("HexClicked", questionId, unexpectedId);
+            }
+        }
+    }
+
+
+    public async Task RefreshHex()
+    {
+        var questionResponse = await Http.GetAsync("api/Game/allQuestions/" + gameId);
+        var unexpectedResponse = await Http.GetAsync("api/Game/allUnexpected/" + gameId);
+
+        if (!questionResponse.IsSuccessStatusCode || !unexpectedResponse.IsSuccessStatusCode)
+        {
+            return;
+        }
+
+        questions = await questionResponse.Content.ReadFromJsonAsync<List<Question>>();
+        unexpectedList = await unexpectedResponse.Content.ReadFromJsonAsync<List<UnexpectedElement>>();
+
+        if (questions == null || unexpectedList == null)
+        {
+            return;
+        }
+
+        if (questions != null)
+        {
+            int countAnswered = 0;
+            foreach (var question in questions)
+            {
+                if (question.hasAnswered)
+                {
+                    countAnswered++;
+                }
+            }
+
+            if (countAnswered >= 1)
+            {
+                isFirstQuestionId = false;
+            }
+            else if (countAnswered == 0)
+            {
+                isFirstQuestionId = true;
+            }
+        }
+
+        var existingHexContents = new Dictionary<int, HexContent>();
+        foreach (var hexContent in mixedHexContent)
+        {
+            if (hexContent.Question != null)
+            {
+                existingHexContents[hexContent.Question.id * 100] = hexContent;
+            }
+            else if (hexContent.UnexpectedElement != null)
+            {
+                existingHexContents[hexContent.UnexpectedElement.id] = hexContent;
+            }
+        }
+
+        // Update the properties of the existing hex contents based on the new data
+        foreach (var question in questions)
+        {
+            if (existingHexContents.TryGetValue(question.id * 100, out var hexContent))
+            {
+                hexContent.Question = question;
+            }
+            else
+            {
+                mixedHexContent.Add(new HexContent { Question = question });
+            }
+        }
+
+        foreach (var unexpectedElement in unexpectedList)
+        {
+            if (existingHexContents.TryGetValue(unexpectedElement.id, out var hexContent))
+            {
+                hexContent.UnexpectedElement = unexpectedElement;
+            }
+            else
+            {
+                mixedHexContent.Add(new HexContent { UnexpectedElement = unexpectedElement });
+            }
+        }
+
+        // Shuffle the mixedHexContent list if it hasn't been shuffled before
+        if (!hasMixedContent)
+        {
+            var random = new Random();
+            mixedHexContent = mixedHexContent.OrderBy(x => random.Next()).ToList();
+            hasMixedContent = true;
+
+            // Send the shuffled order of the hex contents to the clients
+            await hubConnection.SendAsync("HexContentsShuffled", mixedHexContent);
+        }
+
+        // Send the updated hex content to the clients
+        await hubConnection.SendAsync("HexContentUpdated", mixedHexContent);
+
+        // Check if all questions have been answered
+        var allQuestionsAnswered = questions.All(q => q.hasAnswered == true);
+
+        // Check if all unexpected elements have been answered
+        var allUnexpectedAnswered = unexpectedList.All(ue => ue.hasAnswered == true);
+
+        if (allQuestionsAnswered && allUnexpectedAnswered)
+        {
+            foreach (var u in users)
+            {
+                var getResponse9 = await Http.GetAsync("api/Game/getUserIdByName/" + u.Name);
+                if (getResponse9.IsSuccessStatusCode == true)
+                {
+                    var userIdfromSQL = await getResponse9.Content.ReadFromJsonAsync<int>();
+                    var getResponse10 = await Http.GetAsync("api/Game/getUpdatedScoreById/" + userIdfromSQL);
+                    var scoreFromSql = getResponse10.Content.ReadFromJsonAsync<Scores>().Result;
+                    if (scoreFromSql != null)
+                    {
+                        bonus = 0;
+    @foreach (Resource r in resourcesList)
+                        {
+                            if (r.ImageUrl == "rgba(130,189,80,0.5)")
+                            {
+                                bonus += 5;
+                            } 
+                        }
+                        var curGrade = scoreFromSql.grade;
+                        var curGradeWithBonus = curGrade + bonus;
+                        var getResponse4 = await Http.GetAsync("api/Game/updateBonus/" + curGradeWithBonus + "/" + userIdfromSQL);
+                        if (getResponse4.IsSuccessStatusCode == true)
+                        {
+                            navigationManager.NavigateTo($"ScoresBoard/{gameId}");
+                        }
+                    }
+                }
+            }
+        }
+
+        StateHasChanged();
+    }
+
+
+
+    public async Task getScales(string userClicked)
+    {
+        //username = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "username");
+
+        var getResponse = await Http.GetAsync("api/Game/getUserIdByName/" + userClicked);
+        var userIdfromSQL = getResponse.Content.ReadFromJsonAsync<int>().Result;
+        if (getResponse.IsSuccessStatusCode == true)
+        {
+            var getResponse10 = await Http.GetAsync("api/Game/getUpdatedScoreById/" + userIdfromSQL);
+            var scoreFromSql = getResponse10.Content.ReadFromJsonAsync<Scores>().Result;
+            if (scoreFromSql != null)
+            {
+                scaleScores.Clear();
+                scoreFromSqlScales.Clear();
+                scoreFromSqlScales.Add(scoreFromSql.scale1);
+                scoreFromSqlScales.Add(scoreFromSql.scale2);
+                scoreFromSqlScales.Add(scoreFromSql.scale3);
+                scoreFromSqlScales.Add(scoreFromSql.scale4);
+                scoreFromSqlScales.Add(scoreFromSql.scale5);
+
+                int index = 0;
+                foreach (var scale in scalesList)
+                {
+                    scaleScores.Add(new ScaleScore { ScaleName = scale.ScaleName, Score = scoreFromSqlScales[index] });
+                    index++;
+                }
+                StateHasChanged();
+            }
+        }
+    }
+
+
+    public void ChangeTurnAfterTimer()
+    {
+        currentPlayerIndex = (currentPlayerIndex + 1) % users.Count;
+
+        if (currentPlayerIndex == 0)
+        {
+            // If the currentPlayerIndex becomes 0 again, it means the first player should take their turn again
+            isMyTurn = true;
+        }
+        else
+        {
+            // Otherwise, set isMyTurn based on the new currentPlayerIndex
+            isMyTurn = users.Count > 0 && users[currentPlayerIndex % users.Count].Name == user;
+        }
+
+        if (users[currentPlayerIndex].Name == user)
+        {
+            addBorder = "#A7BF4E";
+        }
+        else
+        {
+            addBorder = "#12273D";
+        }       
+        unexpectedUser = users[currentPlayerIndex].Name;
+        StateHasChanged();
+    }
+
+
+    public async Task ChangeDataAfterSubmit(int answerId)
+    {
+        currentPlayerIndex = (currentPlayerIndex + 1) % users.Count;
+
+        if (currentPlayerIndex == 0)
+        {
+            // If the currentPlayerIndex becomes 0 again, it means the first player should take their turn again
+            isMyTurn = true;
+        }
+        else
+        {
+            // Otherwise, set isMyTurn based on the new currentPlayerIndex
+            isMyTurn = users.Count > 0 && users[currentPlayerIndex % users.Count].Name == user;
+        }
+
+        if (users[currentPlayerIndex].Name == user)
+        {
+            addBorder = "#A7BF4E";
+        } else {
+            addBorder = "#12273D";
+        }
+
+        unexpectedUser = users[currentPlayerIndex].Name;
+
+        var getResponse = await Http.GetAsync("api/Game/changedScales/" + answerId);
+        if (getResponse.IsSuccessStatusCode == true)
+        {
+            var changedScales = getResponse.Content.ReadFromJsonAsync<List<ScalesToChange>>().Result;
+            if (changedScales != null)
+            {
+                // update each user score
+                string requestUrl = "api/Game/updateScoreById/";
+                int i = 0;
+                grade = 0;
+                foreach (var scaleToChange in changedScales)
+                {
+                    // Get the Scale object from the scalesList based on its ID
+                    var scaleToUpdate = scalesList.FirstOrDefault(s => s.Id == scaleToChange.scaleId);
+                    // Update the Value property of the Scale object with the new value
+                    if (scaleToUpdate != null)
+                    {
+                        scaleToUpdate.Value = scaleToUpdate.Value + scaleToChange.changedValue;
+                        if (scaleToUpdate.Value < 0){
+                            scaleToUpdate.Value = 0;
+                        }
+                        if (scaleToUpdate.Value > 100)
+                        {   
+                            scaleToUpdate.Value = 100;
+                        }
+
+                        grade = Math.Round((double)scaleToUpdate.Value / 100 * (100 / scalesList.Count) + grade, MidpointRounding.AwayFromZero);
+
+                        // Update the scores values by userId so other players will see that when scores is showed
+                        requestUrl += scaleToUpdate.Value;
+                        if (i < changedScales.Count - 1)
+                        {
+                            requestUrl += "/";
+                        }                      
+                    }
+                    i++;
+                }       
+                var getResponse3 = await Http.GetAsync("api/Game/getUserIdByName/" + user);
+                var userIdfromSQL = getResponse3.Content.ReadFromJsonAsync<int>().Result;
+                requestUrl += "/" + userIdfromSQL + "/" + grade;
+
+                var getResponse4 = await Http.GetAsync(requestUrl);
+                if (getResponse4.IsSuccessStatusCode != true)       
+                {
+                    throw new Exception("Failed to update player scale");
+                }
+
+                await hubConnection.SendAsync("UpdateGrades");
+
+                StateHasChanged();           
+            }
+        }
+
+        var getResponse2 = await Http.GetAsync("api/Game/changedResources/" + answerId);
+        if (getResponse2.IsSuccessStatusCode == true)   
+        {
+            var changedResources = getResponse2.Content.ReadFromJsonAsync<List<ResourcesToChange>>().Result;
+            if (changedResources != null)
+            {
+                foreach (var resourceToChange in changedResources)
+                {
+                    var resourceToUpdate = resourcesList.FirstOrDefault(r => r.Id == resourceToChange.resourceId);
+                    // Update the Value property of the resource object with the new value
+                    if (resourceToUpdate != null)
+                    {
+                        initialResource = resourceToUpdate.Quantity;                       
+                        resourceToUpdate.Quantity = resourceToUpdate.Quantity + resourceToChange.changedQuantity;
+                        if (resourceToUpdate.Quantity >= initialResource)
+                        {
+                            resourceToUpdate.ImageUrl = "rgba(130,189,80,0.5)";
+                        }
+                        else
+                        {
+                            resourceToUpdate.ImageUrl = "rgba(223,102,33,0.5)";
+                        }
+                    }
+                }              
+            }
+        }
+
+        StateHasChanged();
+    }
+
+    public async Task UpdateTurn() {
+        currentPlayerIndex = (currentPlayerIndex + 1) % users.Count;
+
+        if (currentPlayerIndex == 0)
+        {
+            // If the currentPlayerIndex becomes 0 again, it means the first player should take their turn again
+            isMyTurn = true;
+        }
+        else
+        {
+            // Otherwise, set isMyTurn based on the new currentPlayerIndex
+            isMyTurn = users.Count > 0 && users[currentPlayerIndex % users.Count].Name == user;
+        }
+
+        if (users[currentPlayerIndex].Name == user)
+        {
+            addBorder = "#A7BF4E";
+        }
+        else
+        {
+            addBorder = "#12273D";
+        }
+
+        unexpectedUser = users[currentPlayerIndex].Name;
+        StateHasChanged();
+    }
+
+    public async Task ChangeDataAfterUnexpected(int unexpectedId)
+    {
+        await hubConnection.SendAsync("UpdateTurn");
+
+        var getResponse = await Http.GetAsync("api/Game/unexpectedChangedResources/" + unexpectedId);
+        if (getResponse.IsSuccessStatusCode == true)
+        {
+            var changedResources = getResponse.Content.ReadFromJsonAsync<List<UnexpectedResourcesToChange>>().Result;
+            if (changedResources != null)
+            {
+                foreach (var resourceToChange in changedResources)
+                {
+                    var resourceToUpdate = resourcesList.FirstOrDefault(r => r.Id == resourceToChange.resourcesId);
+                    // Update the Value property of the resource object with the new value
+                    if (resourceToUpdate != null)
+                    {
+                        initialResource = resourceToUpdate.Quantity;
+                        resourceToUpdate.Quantity = resourceToUpdate.Quantity + resourceToChange.changedQuantity;
+                        if (resourceToUpdate.Quantity >= initialResource)
+                        {
+                            resourceToUpdate.ImageUrl = "rgba(130,189,80,0.5)";
+                        }
+                        else
+                        {
+                            resourceToUpdate.ImageUrl = "rgba(223,102,33,0.5)";
+                        }
+                    }
+                }
+            }
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task UpdateGrades()
+    {
+        calcGrades = 0;
+        foreach (var u in users)
+        {
+            eachUserGrade.Clear();
+            // Get the user's ID
+            var getResponse15 = await Http.GetAsync("api/Game/getUserIdByName/" + u.Name);
+            var userIdfromSQL2 = getResponse15.Content.ReadFromJsonAsync<int>().Result;
+
+            // Get the user's scale scores
+            var getResponse10 = await Http.GetAsync("api/Game/getUpdatedScoreById/" + userIdfromSQL2);
+            var scoreFromSql = getResponse10.Content.ReadFromJsonAsync<Scores>().Result;
+
+            eachUserGrade.Add(scoreFromSql.grade);
+
+            userGrades[u.Name] = scoreFromSql.grade;
+
+            // Check avg of playersgrades
+            calcGrades += scoreFromSql.grade;
+        }
+
+        avgMarketStatus = 0;
+        avgMarketStatus = calcGrades / users.Count;
+
+        if (avgMarketStatus <= 30)
+        {
+            greenOpacity = 0.25;
+            yellowOpacity = 0.25;
+            redOpacity = 1;
+        }
+        else if (avgMarketStatus >= 31 && avgMarketStatus <= 70)
+        {
+            greenOpacity = 0.25;
+            yellowOpacity = 1;
+            redOpacity = 0.25;
+        }
+        else
+        {
+            greenOpacity = 1;
+            yellowOpacity = 0.25;
+            redOpacity = 0.25;
+        }
+      
+        StateHasChanged();
+    }
+
+}

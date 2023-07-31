@@ -1,0 +1,77 @@
+﻿@using NufarMeir_GalOxenberg.Shared.DTOs
+@inject HttpClient Http
+@inject NavigationManager navigationManager
+
+<style>
+    .mud-dialog-title {
+        background: #EFEED8;
+        position: sticky;
+        top: 0;
+    }
+
+    .mud-tooltip-root.mud-tooltip-inline {
+        display: table-cell;
+    }
+
+    :root {
+        --mud-Info: #12273D;
+        --mud-palette-info-darken: #1C3D59;
+    }
+
+    .mud-info-text {
+        --mud-Info: #12273D;
+    }
+
+    .--mud-palette-info {
+        --mud-Info: #12273D;
+    }
+
+    .mud-dialog .mud-dialog-actions {
+        justify-content: center;
+    }
+
+    .mud-icon-root.mud-svg-icon {
+        color: #12273D;
+    }
+</style>
+
+
+<MudAlert id="callAlert" Severity="Severity.Success" ContentAlignment="HorizontalAlignment.Center" style="display: none;font-family:Fredoka;">
+    הלינק הועתק בהצלחה!
+</MudAlert>
+
+<MudDialog Style="background-color:#EFEED8; margin-right:5rem; box-shadow: 0 10px 10px 0 rgba(9, 20, 30, 0.5), 0 4px 4px 0 rgba(9, 20, 30, 0.5); top:0; height:min-content;">
+    <DialogContent>
+        <MudIconButton Style="margin-bottom: 0.5rem;" OnClick="backToGames" Icon="@Icons.Material.Filled.NavigateNext" Color="Color.Info" />
+
+        <MudText style="font-weight: 600;font-family:Fredoka; color: #12273D; display: flex; justify-content: center;">
+            המשחק מותאם לנייד ומתקיים בקבוצות של 2-6 משתתפים או משתתפות
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+       
+        <div style="display: flex; flex-direction: column; align-items: center;">
+            <MudText style="font-family:Fredoka; color: #12273D; display: flex; justify-content: center;">העתיקו את הלינק</MudText>
+            <a style="background-color:transparent;" Variant="Variant.Filled" href="#" onclick="copyLink(@deafultGame)">
+                <MudIconButton Icon="@Icons.Material.Filled.Link" Color="Color.Info" Size="Size.Large" />
+            </a>
+            <MudText  style="font-family:Fredoka; color: #12273D; display: flex; justify-content: center;">או סרקו את קוד ה-QR</MudText>
+            <img src="Images/QRcode.png" style="margin-bottom: 1rem; width: 20%;" />
+        </div>
+    </DialogActions>    
+</MudDialog>
+
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public int EditorId { get; set; }
+
+    public int deafultGame = 1;
+
+    public void backToGames()
+    {
+        navigationManager.NavigateTo("EditorGames");
+    }
+}

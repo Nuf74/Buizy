@@ -1,0 +1,1128 @@
+﻿@using NufarMeir_GalOxenberg.Shared.DTOs
+@inject HttpClient Http
+@inject NavigationManager navigationManager
+@inject IDialogService DialogService
+
+<PageTitle>Edit Decision Round</PageTitle>
+
+<style>
+
+    :root{
+        --mud-palette-primary: #12273D;
+        --mud-palette-surface: #EFEED8;
+        --mud-palette-text-primary: #12273D;
+        --mud-palette-primary-lighten: #1C3D59;
+        --mud-palette-secondary: #12273D;
+        --mud-palette-secondary-darken: #1C3D59;
+        --mud-palette-text-disabled: lightslategray;
+        --mud-palette-action-default-hover: rgba(213, 211, 150, 0.21);
+    }
+
+    .mud-dialog .mud-dialog-title {
+        display:none;
+    }
+
+    .form-control-lg {
+        font-size: 1rem;
+        line-height: 5rem;
+        border:none;
+        color: #12273D;
+        background-color:#F7F6F0;
+    }
+
+    .mud-input{
+        width:70%;
+    }
+
+   .mud-input > input.mud-input-root, div.mud-input-slot.mud-input-root{
+        height: 0.3rem;
+   }
+
+   .mud-input-control > .mud-input-control-input-container{
+        width: 70%;
+   }
+
+    .mud-input-control{
+        margin-left: -80px;
+    }
+
+    .addDisabled{
+        cursor: not-allowed;
+        pointer-events: none;
+        color:lightgrey;
+    }
+
+    .answer-button {
+    background-color: rgba(213, 211, 150, 0.21);
+    font-family: Fredoka;
+    color: rgb(18, 39, 61);
+    width: -webkit-fill-available;
+    margin-top: 1rem;
+    display: block;
+        box-shadow: 0 5px 5px 0 rgba(145, 142, 106, 0.5), 0 2px 2px 0 rgba(145, 142, 106, 0.5);
+    }
+
+    .answer-button.selected {
+            background-color: #1C3D59;
+            color:white;
+    }
+
+    .slider-answer {
+        display: inline-flex;
+    }
+
+    .slider-answer .min-value {
+        padding-left: 3px;
+    }
+
+    #questionsTypeOptions {
+        display: flex;
+        flex-direction: inherit;
+        align-items: center;
+        justify-content: space-evenly;
+        height: 100%;
+    }
+
+
+    .title {
+        font-size: 14px;
+        margin-bottom: 10px;
+        margin-top: 1rem;
+    }
+
+    .option {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        cursor: pointer;
+        text-align: center;
+        justify-content: center;
+        margin-bottom: 20px;
+    }
+
+        .option img {
+            width: 100px;
+            height: auto;
+            max-height: 100%;
+        }
+
+    .form-control-lg {
+        line-height: 3vh;
+    }
+
+    textarea.form-control-lg {
+    min-height: 6vh;
+}
+
+.mud-tooltip-root.mud-tooltip-inline {
+    float: left;
+        display: inline-flex;
+        align-items: baseline;
+}
+
+    .mud-icon-button-label {
+        justify-content: start;
+        top: 5%;
+    }
+    .mud-dialog-width-xl {
+    overflow: hidden;
+    }
+</style>
+
+    <EditForm Model="NewDecision" OnValidSubmit="Ready" style="margin-bottom:1rem;">
+
+             <MudIconButton Style="margin-right:0.5rem;" OnClick="BackToBoard" Icon="@Icons.Material.Filled.NavigateNext" Color="Color.Info">
+        <p>חזרה ללוח</p>
+     </MudIconButton>
+
+    <MudTabs @ref="tabs" Style="font-family:Fredoka;padding-left: 2rem; padding-right: 2rem;font-size:16px;" Elevation="1" Centered="true" Color="@Color.Primary">
+
+        <MudTabPanel Disabled=@Disabled1 Text="1. תיאור המקרה" ToolTip="סבב קבלת ההחלטה מורכב מ-3 שלבים, יש למלא את כולם כדי להמשיך">
+            <MudText Style="font-family:Fredoka;padding-top: 2rem;font-size:15px;">
+            למה כדאי לשים לב?
+            <br />
+            <p>
+                1. שנספק לשחקנים מספיק מידע כדי לקבל החלטה
+            </p>
+            <p>
+                2. שכמות המידע שיש לשחקנים לקרוא תואמת את הגבלת הזמן לשאלה
+            </p> 
+            <p>
+             3. אפשרויות המענה בהמשך יוכלו להיות בצורת טקסט חופשי או טווחי מספרים
+            </p>
+        </MudText>
+        <br />
+            <textarea style="min-height: 12vh;" type="text" Label="Outlined" @bind-value="@NewDecision.question" @onkeyup="IsTypeCheck" @bind-value:event="oninput" placeholder="@placeHolder" Variant="Variant.Outlined" class="form-control form-control-lg @isValid" />
+            <p style="color: red;padding-top: 0.5rem;">@msg</p>
+            <MudIconButton Disabled=@stage1 Style="transform: rotate(180deg); right: 93%;" OnClick="() => Activate(1)" Icon="@Icons.Material.Filled.NavigateNext" Color="Color.Info" />
+        </MudTabPanel>
+
+        <MudTabPanel Disabled=@stage1 OnClick="stage1Completed" Text="2. אפשרויות המענה" ToolTip="סבב קבלת ההחלטה מורכב מ-3 שלבים, יש למלא את כולם כדי להמשיך">
+            <p class="title" style="font-size:15px;">יש לבחור את סוג אפשרות המענה:</p>
+
+<div id="questionsTypeOptions" style="margin-right=none;">
+    <div class="option" @onclick="() => typeQuestionChoice(1)">
+                    <img src="@GetDivClassSlider()" style="@filterSLIDER" />
+        <p>טווח מספרים</p>
+    </div>
+    <div class="option" @onclick="() => typeQuestionChoice(0)">
+     <img src="@GetDivClassMultiplate()" style="transform:scale(0.6);@filterMULTIPLE" />
+         <p>רב ברירה</p>
+    </div>
+</div>
+            <div style="justify-content: center;align-items: center;">
+            @if (isMultiplateClick)
+            {
+                    <div style="padding-bottom:0.5rem; display:-webkit-box; margin:1rem; @hiddenMULTIPLE">
+                        <p>לחצו להוספת מסיחים (בין 2 ל-4)</p>
+                        <MudIcon Icon="@Icons.Material.Filled.AddCircle" @onclick="addAnswer" Title="Add" Class="@addDisabled" Style="margin-right: 0.5rem; cursor:pointer" />
+                </div>
+                <div>
+                    @foreach (var a in AnswersByQuestionMULTIPLE)
+                    {
+                        <div>
+                                <textarea type="text" class="form-control-lg" Label="Outlined" style="width: 80%;padding: 0.35rem; height: 4rem; font-size: 0.8rem; line-height: 1rem;" Variant="Variant.Outlined" @bind="@a.Distractor" @bind:event="oninput" @onkeyup="() => answerDistractor(a)"></textarea>
+                                <MudIcon Icon="@Icons.Filled.Delete" Variant="Variant.Filled" @onclick="() => OpenDialogDELETE(a)" Color="Color.Dark" />
+                                </div>
+                                <p style="color: red;padding-bottom: 1rem;">@a.Msg</p>                            
+                     }
+                </div>
+             }
+            </div>
+
+            <div style="justify-content: center;align-items: center; margin:1rem;">
+                @if (isSliderClick)
+                {
+                    <div style="padding-top:2rem; padding-bottom:1rem; display:inline-flex; @hiddenSLIDER">
+                        <p> לחצו להוספת טווחי מספרים למענה (בין 2 ל-4 טווחים)</p>
+                        <MudIcon Icon="@Icons.Material.Filled.AddCircle" @onclick="addAnswer" Title="Add" Class="@addDisabled" Style="margin-right: 0.5rem; cursor:pointer" />
+                    </div>
+                    <div>
+                      
+                        <div>
+            @foreach (var a in AnswersByQuestionSLIDER)
+            {
+                <div style="padding-bottom: 1rem; position: relative; display: -webkit-box;">
+                    @if (AnswersByQuestionSLIDER.IndexOf(a) == AnswersByQuestionSLIDER.Count - 1)
+                    {
+                        <MudIcon Icon="@Icons.Filled.Delete" Variant="Variant.Filled" Color="Color.Primary" class="delete-icon" Style="cursor:pointer" @onclick="() => OpenDialogDELETE(a)" />
+                    }
+
+                    <div style="display: flex; flex-grow: 1; margin-left: 2rem;">
+                        @if (AnswersByQuestionSLIDER.IndexOf(a) <= 1  && !(allSliderAnswersSelected && isSliderClick))
+                        {
+                            answerMin(a);
+                            answerMax(a);
+                             a.Msg ="";
+                             stage2 = false;
+                        }
+                        @if (AnswersByQuestionSLIDER.IndexOf(a) > 0)
+                        {
+                            Answer previousAnswer = AnswersByQuestionSLIDER[AnswersByQuestionSLIDER.IndexOf(a) - 1];
+                            a.Min = previousAnswer.Max + 1;
+                        }
+
+                        @if (a.Min > a.Max)
+                        {
+                        a.Msg = "יש לבחור טווח מהקטן לגדול";
+                        stage2 = true;
+                        }
+                        else
+                        {
+                        stage2 = false;
+                        }
+
+                        מ- <input id="NUMwidth" type="number"
+                               value="@a.Min"
+                               style="display: flex;width: 30%;
+                                      margin-right: 1.5vh; margin-left:auto; direction: ltr;
+                                      border: 1px solid;
+                                      border-radius: 3px;
+                                      background: #EFEED8;
+                                      text-align: center;"
+                               @oninput="(ChangeEventArgs args) =>
+                                {
+                                    if (int.TryParse(args.Value.ToString(), out int result))
+                                    {
+                                        a.Min = result;
+                                        answerMin(a);
+                                    }
+                                }" />
+
+                        <p style="margin-right:1vw;"> עד- </p><input id="NUMwidth" type="number"
+                        value="@a.Max"
+                        style="display: flex;width: 30%;
+                                margin-right: 1.5vh; margin-left:auto; direction: ltr;
+                                border: 1px solid;
+                                border-radius: 3px;
+                                background: #EFEED8;
+                                text-align: center;"
+                        @oninput="(ChangeEventArgs args) =>
+                        {
+                            if (int.TryParse(args.Value.ToString(), out int result))
+                            {
+                                a.Max = result;
+                                answerMax(a);
+                            }
+                        }" />
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(a.Msg))
+                {
+                    <p style="color: red; padding-bottom: 1rem;">@a.Msg</p>
+                }
+            }
+        </div>
+
+                    </div>
+                }
+            </div>
+                    
+            <MudIconButton Disabled=@stage2 Style="transform: rotate(180deg); right: 93%;" OnClick="() => Activate(2)" Icon="@Icons.Material.Filled.NavigateNext" Color="Color.Info" />
+        </MudTabPanel>
+
+
+        <MudTabPanel Disabled=@stage2 OnClick="stage2Completed" Text="3. השפעת ההחלטה" ToolTip="סבב קבלת ההחלטה מורכב מ-3 שלבים, יש למלא את כולם כדי להמשיך">
+            <p style="padding-top:0.7rem; color:#12273D;font-size:15px;">כדאי לזכור- כל בחירה משפיעה אחרת על המשאבים והמדדים</p>
+            <p style="color:#12273D;font-size:15px;">בלחיצה על כל אחד מהמסיחים ניתן להגדיר את ההשפעה שלו על על המשאבים והמדדים</p>
+            <div>
+            @if (isMultiplateClick)
+            {
+                @foreach (var a in AnswersByQuestionMULTIPLE)
+                {
+                    <MudButton class="@GetAnswerButtonClass(a)" OnClick="() => updateAnswerValues(a)">
+                        @a.Distractor
+                    </MudButton>
+                }
+            }
+            else if (isSliderClick)
+            {
+                @foreach (var a in AnswersByQuestionSLIDER)
+                {
+                    <MudButton class="@GetAnswerButtonClass(a)" OnClick="() => updateAnswerValues(a)">
+                        <div class="slider-answer">
+                            <p class="min-value">מ- @a.Min</p>
+                            <p>עד- @a.Max</p>
+                        </div>
+                    </MudButton>
+                }
+            }     
+            </div>
+             <MudTooltip Text="כדאי לשים לב! לאחר השמירה לא ניתן יהיה להחליף את תוכן המשושה להפתעה" Arrow="true" Color="Color.Info" Placement=" Placement.Left">
+                @if (isMultiplateClick)
+                {
+                    <p style="margin-left: 1vw;font-size: 14px;">@selectedMultiplateAnswers.Count/@AnswersByQuestionMULTIPLE.Count הושלמו</p>
+                }
+                @if (isSliderClick)
+                {
+                    <p style="margin-left: 1vw;font-size: 14px;">@selectedSliderAnswers.Count/@AnswersByQuestionSLIDER.Count הושלמו</p>
+                }
+                <MudButton style="font-family:Fredoka;margin-top: 3vh; display: flex;" Color="Color.Secondary" Variant="Variant.Filled" OnClick="Ready" Disabled="!(allMultiplateAnswersSelected && isMultiplateClick) && !(allSliderAnswersSelected && isSliderClick)">שמירה וסיום</MudButton>
+            </MudTooltip>
+        </MudTabPanel>          
+    </MudTabs>
+
+</EditForm>
+
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [Parameter]
+    public Question LastAddedQuestion { get; set; }
+    [Parameter]
+    public GameClass SavedGame { get; set; }
+    [Parameter]
+    public Action<GameClass> GameUpdatedCallback { get; set; }
+    public bool Disabled1 = false;
+    public string placeHolder = "";
+    Question NewDecision = new Question();
+    MudTabs tabs;
+    public string msg = "";
+    public string isValid = "";
+    public bool stage1 = true;
+    public bool stage2 = true;
+    public string scaleImg = "images/scale.png";
+    public string multipleImg = "images/multiple.png";
+    public string addDisabled = "";
+    private bool isSliderClick = false;
+    private bool isMultiplateClick = false;
+    List<Answer> AnswersByQuestionSLIDER = new List<Answer>();
+    List<Answer> AnswersByQuestionMULTIPLE = new List<Answer>();
+    public string hiddenMULTIPLE = "";
+    public string hiddenSLIDER = "";
+    public bool isReady = false;
+    private List<Answer> selectedMultiplateAnswers = new List<Answer>();
+    private List<Answer> selectedSliderAnswers = new List<Answer>();
+    private bool allMultiplateAnswersSelected = false;
+    private bool allSliderAnswersSelected = false;
+    public bool isClicked = false;
+    public bool isEmpty;
+    public string filterSLIDER = "";
+    public string filterMULTIPLE = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        NewDecision = LastAddedQuestion;
+
+        if(isMultiplateClick)
+        {
+            filterMULTIPLE = "filter: drop - shadow(1px 1px 3px #A7BF4E);";
+        }
+        if(isSliderClick)
+        {
+            filterSLIDER = "filter: drop - shadow(1px 1px 3px #A7BF4E);";
+        }
+
+        if (NewDecision != null && !string.IsNullOrEmpty(NewDecision.question))
+        {
+            isValid = "is-valid";
+            msg = "";
+            stage1 = false;
+        }
+
+        if (AnswersByQuestionMULTIPLE.Count == 2 || AnswersByQuestionSLIDER.Count == 2)
+        {
+            stage2 = true;
+            addDisabled = "";
+        }
+
+        if (NewDecision != null && NewDecision.type == 0)
+        {
+            isMultiplateClick = true;
+            isSliderClick = false;
+
+            var getResponse = await Http.GetAsync("api/Game/multipleAnswers/" + NewDecision.id);
+            if (getResponse.IsSuccessStatusCode == true)
+            {
+                List<Answer> multipleAnswers = await getResponse.Content.ReadFromJsonAsync<List<Answer>>();
+                if (multipleAnswers != null)
+                {
+                    foreach (var ma in multipleAnswers)
+                    {
+                        AnswersByQuestionMULTIPLE.Add(ma);
+
+                        selectedMultiplateAnswers.Add(ma);
+                        allMultiplateAnswersSelected = selectedMultiplateAnswers.Count == AnswersByQuestionMULTIPLE.Count;
+                        isReady = true;
+                    }
+                }            
+            }
+        }
+        else if (NewDecision != null && NewDecision.type == 1)
+        {
+            isMultiplateClick = false;
+            isSliderClick = true;
+
+            var getResponse = await Http.GetAsync("api/Game/sliderAnswers/" + NewDecision.id);
+            if (getResponse.IsSuccessStatusCode == true)
+            {
+                List<Answer> SliderAnswers = await getResponse.Content.ReadFromJsonAsync<List<Answer>>();
+                if (SliderAnswers != null)
+                {
+                    foreach (var sa in SliderAnswers)
+                    {
+                        AnswersByQuestionSLIDER.Add(sa);
+
+                        selectedSliderAnswers.Add(sa);
+                        allSliderAnswersSelected = selectedSliderAnswers.Count == AnswersByQuestionSLIDER.Count;
+                        isReady = true;
+                    }
+                }
+            }            
+        }
+
+        if (AnswersByQuestionSLIDER.Count == 0 && AnswersByQuestionMULTIPLE.Count == 0)
+        {
+            if (isMultiplateClick)
+            {
+                hiddenMULTIPLE = "";
+                hiddenSLIDER = "display: none;";
+                for (var i = 0; i <= 1; i++)
+                {
+                    var postResponse = await Http.PostAsJsonAsync<int>("api/Game/addAnswer/" + NewDecision.id, NewDecision.id);
+
+                    var getResponse = await Http.GetAsync("api/Game/getLastAddedAnswer/" + NewDecision.id);
+                    if (getResponse.IsSuccessStatusCode == true)
+                    {
+                        Answer LastAddedAnswer = await getResponse.Content.ReadFromJsonAsync<Answer>();
+                        if (LastAddedAnswer.Distractor.Length > 0)
+                        {
+                            stage2 = true;
+                        }
+                        AnswersByQuestionMULTIPLE.Add(LastAddedAnswer);
+                    }
+                }
+
+                if (isSliderClick)
+                {
+                    hiddenMULTIPLE = "display: none;";
+                    hiddenSLIDER = "";
+                    var postResponse = await Http.PostAsJsonAsync<int>("api/Game/addAnswer/" + NewDecision.id, NewDecision.id);
+
+                    var getResponse = await Http.GetAsync("api/Game/getLastAddedAnswer/" + NewDecision.id);
+                    if (getResponse.IsSuccessStatusCode == true)
+                    {
+                        Answer LastAddedAnswer = await getResponse.Content.ReadFromJsonAsync<Answer>();
+                        AnswersByQuestionSLIDER.Add(LastAddedAnswer);
+                    }
+                }
+
+                stage2 = true;
+            }
+        }
+
+        foreach (var an in AnswersByQuestionMULTIPLE)
+        {
+            if (an.Distractor.Length > 0)
+            {
+                isEmpty = false;
+            }
+            else
+            {
+                isEmpty = true;
+                stage2 = true;
+            }
+        }
+
+        if (isSliderClick)
+        {
+            if (AnswersByQuestionSLIDER.Count >= 2)
+            {
+                stage2 = false;
+                addDisabled = "";
+            }
+            if (AnswersByQuestionSLIDER.Count >= 4)
+            {
+                addDisabled = "addDisabled";
+            }
+        }
+
+
+        if (isMultiplateClick)
+        {
+            if (AnswersByQuestionMULTIPLE.Count >= 2 && !isEmpty)
+            {
+                stage2 = false;
+                addDisabled = "";
+            }
+            if (AnswersByQuestionMULTIPLE.Count >= 4)
+            {
+                addDisabled = "addDisabled";
+            }
+        }
+    }
+
+    private async Task BackToBoard()
+    {
+        if (isReady == false)
+        {
+            var parameters = new DialogParameters();
+            parameters.Add("ContentText", "התהליך לא הושלם, חזרה ללוח תמחק את השאלה הקיימת");
+            parameters.Add("ButtonText", "מחיקה ואישור");
+            parameters.Add("Color", Color.Secondary);
+
+            var options = new DialogOptions() { CloseButton = false, MaxWidth = MaxWidth.ExtraSmall };
+            var dialog = DialogService.Show<BackToBoard>("", parameters, options);
+            var result = await dialog.Result;
+
+            if (!result.Cancelled)
+            {               
+                if (isSliderClick)
+                {
+                    var answersToRemove = new List<Answer>();
+
+                    foreach (Answer a in AnswersByQuestionSLIDER)
+                    {
+                        answersToRemove.Add(a);
+                    }
+
+                    foreach (Answer a in answersToRemove)
+                    {
+                        AnswersByQuestionSLIDER.Remove(a);
+                        await DeleteAnswer(a);                      
+                    }
+                }
+
+                if (isMultiplateClick)
+                {
+                    var answersToRemove = new List<Answer>();
+
+                    foreach (Answer a in AnswersByQuestionMULTIPLE)
+                    {
+                        answersToRemove.Add(a);
+                    }
+
+                    foreach (Answer a in answersToRemove)
+                    {
+                        AnswersByQuestionMULTIPLE.Remove(a);
+                        await DeleteAnswer(a);                     
+                    }
+                }
+
+                var DeleteResponse = await Http.DeleteAsync("api/Game/DeleteQuestion/" + NewDecision.id);
+                navigationManager.NavigateTo($"EditorBoard/" + SavedGame.Id);
+            } 
+        } else 
+        {
+            navigationManager.NavigateTo($"EditorBoard/" + SavedGame.Id);
+        }
+    }
+
+    void IsTypeCheck()
+    {
+        if (NewDecision == null || NewDecision.question == null || NewDecision.question.Length <= 2)
+        {
+            isValid = "is-invalid";
+            msg = "אופס, תיאור המקרה צריך להיות ארוך מ-2 תווים";
+            stage1 = true;
+        } else{
+            isValid = "is-valid";
+            msg = "";
+            stage1 = false;
+        }
+    }
+
+    void Activate(int index)
+    {   
+        tabs.ActivatePanel(index);
+    }
+
+    private async Task stage1Completed(){
+        var getResponse4 = await Http.GetAsync("api/Game/updateQuestionDescription/" + NewDecision.question + "/" + NewDecision.id);
+        if (getResponse4.IsSuccessStatusCode == true)
+        {
+            //TODO: ADD A CHECK TO THE STAGE
+        }
+    }
+
+    private async Task stage2Completed()
+    {
+        var getResponse4 = await Http.GetAsync("api/Game/updateQuestionType/" + NewDecision.type + "/" + NewDecision.id);
+        if (getResponse4.IsSuccessStatusCode == true)
+        {
+            //TODO: ADD A CHECK TO THE STAGE
+        }
+    }
+
+    private async Task typeQuestionChoice(int number)
+    {
+        isSliderClick = number == 1;
+        isMultiplateClick = number == 0;
+
+        if (isSliderClick && AnswersByQuestionMULTIPLE.Count > 0)
+        {
+            var parameters = new DialogParameters();
+            parameters.Add("ContentText", "  על מנת להחליף את אפשרות המענה יש למחוק את המסיחים הקיימים");
+            parameters.Add("ButtonText", "מחיקת המסיחים");
+            parameters.Add("Color", Color.Secondary);
+
+            var options = new DialogOptions() { CloseButton = false, MaxWidth = MaxWidth.ExtraSmall };
+            var dialog = DialogService.Show<SwitchType>("", parameters, options);
+            var result = await dialog.Result;
+
+            if (!result.Cancelled)
+            {
+                var answersToRemove = new List<Answer>();
+
+                foreach (Answer a in AnswersByQuestionMULTIPLE)
+                {
+                    answersToRemove.Add(a);
+                }
+
+                foreach (Answer a in answersToRemove)
+                {
+                    AnswersByQuestionMULTIPLE.Remove(a);
+                    await DeleteAnswer(a);
+                }
+
+                selectedMultiplateAnswers.Clear();
+                allMultiplateAnswersSelected = false;
+
+                if (AnswersByQuestionMULTIPLE.Count == 2 || AnswersByQuestionSLIDER.Count == 2)
+                {
+                    stage2 = true;
+                    addDisabled = "";
+                }
+                //add empty answers in slider
+                for (var i = 0; i <= 1; i++)
+                {
+                    var postResponse = await Http.PostAsJsonAsync<int>("api/Game/addAnswer/" + NewDecision.id, NewDecision.id);
+
+                    var getResponse = await Http.GetAsync("api/Game/getLastAddedAnswer/" + NewDecision.id);
+                    if (getResponse.IsSuccessStatusCode == true)
+                    {
+                        Answer LastAddedAnswer = await getResponse.Content.ReadFromJsonAsync<Answer>();
+                        AnswersByQuestionSLIDER.Add(LastAddedAnswer);
+                    }
+                }
+
+                stage2 = false;
+            }
+
+            StateHasChanged();
+        }
+
+
+        if (isMultiplateClick && AnswersByQuestionSLIDER.Count > 0)
+        {
+            var parameters = new DialogParameters();
+            parameters.Add("ContentText", "  על מנת להחליף את אפשרות המענה יש למחוק את הטווחים הקיימים");
+            parameters.Add("ButtonText", "מחיקת הטווחים");
+            parameters.Add("Color", Color.Secondary);
+
+            var options = new DialogOptions() { CloseButton = false, MaxWidth = MaxWidth.ExtraSmall };
+            var dialog = DialogService.Show<SwitchType>("", parameters, options);
+            var result = await dialog.Result;
+
+            if (!result.Cancelled)
+            {
+                var answersToRemove = new List<Answer>();
+
+                foreach (Answer a in AnswersByQuestionSLIDER)
+                {
+                    answersToRemove.Add(a);
+                }
+
+                foreach (Answer a in answersToRemove)
+                {
+                    await DeleteAnswer(a);
+                    AnswersByQuestionSLIDER.Remove(a); // Remove the answer from the list
+                }
+
+                selectedSliderAnswers.Clear();
+                allSliderAnswersSelected = false;
+
+                //add empty answers in multiple
+                for (var i = 0; i <= 1; i++)
+                {
+                    var postResponse = await Http.PostAsJsonAsync<int>("api/Game/addAnswer/" + NewDecision.id, NewDecision.id);
+
+                    var getResponse = await Http.GetAsync("api/Game/getLastAddedAnswer/" + NewDecision.id);
+                    if (getResponse.IsSuccessStatusCode == true)
+                    {
+                        Answer LastAddedAnswer = await getResponse.Content.ReadFromJsonAsync<Answer>();
+                        if (LastAddedAnswer.Distractor.Length > 0)
+                        {
+                            stage2 = true;
+                        }
+                        AnswersByQuestionMULTIPLE.Add(LastAddedAnswer);
+                    }
+                }
+                isEmpty = true;
+                stage2 = true;
+            }
+
+            foreach(var an in AnswersByQuestionMULTIPLE)
+            {
+                if (an.Distractor.Length > 0) 
+                {
+                    isEmpty = false;
+                } else {
+                    isEmpty = true;
+                }
+            }
+
+            StateHasChanged();
+        }
+
+
+        if (number == 1)
+        {
+            NewDecision.type = 1;
+            isMultiplateClick = false;
+            scaleImg = "images/selectedScale.png";
+            multipleImg = "images/multiple.png";   
+        }
+        else if (number == 0)
+        {
+            NewDecision.type = 0;
+            isSliderClick = false;
+            scaleImg = "images/scale.png";
+            multipleImg = "images/selectedMultiple.png";
+        }
+
+
+    }
+
+    private string GetDivClassSlider()
+    {
+        return isSliderClick ? "images/selectedScale.png" : "images/scale.png";
+    }
+
+    private string GetDivClassMultiplate()
+    {
+        return isMultiplateClick ? "images/selectedMultiple.png" : "images/multiple.png";
+    }
+
+
+    private async Task addAnswer()
+    {
+        isEmpty = true;
+        addDisabled = "addDisabled";
+
+        if (isMultiplateClick)
+        {
+            hiddenMULTIPLE = "";
+            hiddenSLIDER = "display: none;";
+            var postResponse = await Http.PostAsJsonAsync<int>("api/Game/addAnswer/" + NewDecision.id, NewDecision.id);
+
+            var getResponse = await Http.GetAsync("api/Game/getLastAddedAnswer/" + NewDecision.id);
+            if (getResponse.IsSuccessStatusCode == true)
+            {
+                Answer LastAddedAnswer = await getResponse.Content.ReadFromJsonAsync<Answer>();
+                if (LastAddedAnswer.Distractor.Length > 0)
+                {
+                    stage2 = true;
+                }
+                AnswersByQuestionMULTIPLE.Add(LastAddedAnswer);
+            }
+        }
+
+        if (isSliderClick)
+        {
+            hiddenMULTIPLE = "display: none;";
+            hiddenSLIDER = "";
+            var postResponse = await Http.PostAsJsonAsync<int>("api/Game/addAnswer/" + NewDecision.id, NewDecision.id);
+
+            var getResponse = await Http.GetAsync("api/Game/getLastAddedAnswer/" + NewDecision.id);
+            if (getResponse.IsSuccessStatusCode == true)
+            {
+                Answer LastAddedAnswer = await getResponse.Content.ReadFromJsonAsync<Answer>();
+                AnswersByQuestionSLIDER.Add(LastAddedAnswer);
+            }
+        }
+
+        if (AnswersByQuestionMULTIPLE.Count >= 1)
+        {
+            if (AnswersByQuestionMULTIPLE.Count >=1 && isEmpty)
+            {
+                stage2 = true;
+                addDisabled = "addDisabled";
+            }
+            else
+            {
+                stage2 = false;
+                addDisabled = "";
+            }
+        }
+        if (AnswersByQuestionSLIDER.Count >= 4 || AnswersByQuestionMULTIPLE.Count >= 4)
+        {
+            addDisabled = "addDisabled";
+        }
+
+        allMultiplateAnswersSelected = selectedMultiplateAnswers.Count >= AnswersByQuestionMULTIPLE.Count;
+        allSliderAnswersSelected = selectedSliderAnswers.Count >= AnswersByQuestionSLIDER.Count;
+    }
+
+    private async Task answerDistractor(Answer a)
+    {
+        addDisabled = "addDisabled";
+        if (a != null && a.Distractor.Length > 0)
+        {
+            if (AnswersByQuestionSLIDER.Count >= 4 || AnswersByQuestionMULTIPLE.Count >= 4)
+            {
+                addDisabled = "addDisabled";
+            } else {             
+                addDisabled = "";
+            }
+            a.Msg = "";
+
+            var getResponse4 = await Http.GetAsync("api/Game/updateAnswerDistractor/" + a.Distractor + "/" + a.Id);
+            if (getResponse4.IsSuccessStatusCode == true)
+            {
+                //TODO: ADD A CHECK TO THE STAGE
+            }
+        } else {
+            addDisabled = "addDisabled";
+            stage2 = true;
+            isEmpty = true;
+            a.Msg = "יש להזין תוכן במסיח התשובה";
+        }
+
+        foreach(var an in AnswersByQuestionMULTIPLE)
+        {
+            if (an.Distractor.Length > 0) 
+            {
+                isEmpty = false;
+            } else {
+                isEmpty = true;
+            }
+        }
+
+        if (AnswersByQuestionMULTIPLE.Count >= 1 && isEmpty)
+        {
+            stage2 = true;
+            addDisabled = "";
+        }
+        if (AnswersByQuestionMULTIPLE.Count >= 2 && !isEmpty || AnswersByQuestionSLIDER.Count >= 2)
+        {
+            stage2 = false;
+            addDisabled = "";
+        }
+        if (AnswersByQuestionSLIDER.Count >= 4 || AnswersByQuestionMULTIPLE.Count >= 4)
+        {
+            addDisabled = "addDisabled";
+        }
+    }
+
+    private async Task answerMin(Answer a)
+    {
+        if (AnswersByQuestionSLIDER.IndexOf(a) <= 1 && !(allSliderAnswersSelected && isSliderClick))
+        {
+            a.Msg = "";
+            stage2 = false;
+        }
+        if (AnswersByQuestionSLIDER.IndexOf(a) > 0)
+        {
+            Answer previousAnswer = AnswersByQuestionSLIDER[AnswersByQuestionSLIDER.IndexOf(a) - 1];
+            a.Min = previousAnswer.Max + 1;
+        }
+        addDisabled = "addDisabled";
+        if (AnswersByQuestionSLIDER.Count >= 4 || AnswersByQuestionMULTIPLE.Count >= 4)
+        {
+            addDisabled = "addDisabled";
+        }
+        else
+        {
+            addDisabled = "";
+        }
+        a.Msg  = "";
+        if (a.Min > a.Max)
+        {
+            a.Msg = "יש לבחור טווח מהקטן לגדול";
+            stage2 = true;
+        }
+        else
+        {
+            stage2 = false;
+        }
+        var getResponse4 = await Http.GetAsync("api/Game/updateAnswerMin/" + a.Min + "/" + a.Id);
+        if (getResponse4.IsSuccessStatusCode == true)
+        {
+            //TODO: ADD A CHECK TO THE STAGE
+        }
+    }
+
+    private async Task answerMax(Answer a)
+    {
+        if (AnswersByQuestionSLIDER.IndexOf(a) <= 1 && !(allSliderAnswersSelected && isSliderClick))
+        {
+            a.Msg = "";
+            stage2 = false;
+        }
+        if (AnswersByQuestionSLIDER.IndexOf(a) > 0)
+        {
+            Answer previousAnswer = AnswersByQuestionSLIDER[AnswersByQuestionSLIDER.IndexOf(a) - 1];
+            a.Min = previousAnswer.Max + 1;
+        }
+        addDisabled = "addDisabled";
+        if (AnswersByQuestionSLIDER.Count >= 4 || AnswersByQuestionMULTIPLE.Count >= 4)
+        {
+            addDisabled = "addDisabled";
+        }
+        else
+        {
+            addDisabled = "";
+        }
+        a.Msg = "";
+        if (a.Min > a.Max)
+        {
+            a.Max = a.Min;
+            a.Msg = "יש לבחור טווח מהקטן לגדול";
+            stage2 = true;
+        }  
+        else
+        {
+            stage2 = false;
+        }
+        var getResponse4 = await Http.GetAsync("api/Game/updateAnswerMax/" + a.Max + "/" + a.Id);
+        if (getResponse4.IsSuccessStatusCode == true)
+        {
+            //TODO: ADD A CHECK TO THE STAGE
+        }
+    }
+
+    private async void OpenDialogDELETE(Answer ans)
+    {
+        if (isMultiplateClick)
+        {
+            var parameters = new DialogParameters();
+            parameters.Add("ContentText", " האם ברצונך למחוק את המסיח" + " " +  ans.Distractor + "?");
+            parameters.Add("ButtonText", "מחיקה");
+            parameters.Add("Color", Color.Secondary);
+            parameters.Add("answerToDelete", ans);
+
+            var options = new DialogOptions() { CloseButton = false, MaxWidth = MaxWidth.ExtraSmall };
+            var dialog = DialogService.Show<DeleteAnswerComponent>("", parameters, options);
+            var result = await dialog.Result;
+
+            if (!result.Cancelled)
+            {
+                AnswersByQuestionMULTIPLE.Remove(ans); 
+                await DeleteAnswer(ans);                
+            }
+            StateHasChanged();
+        }
+
+        if (isSliderClick)
+        {
+            var parameters = new DialogParameters();
+            parameters.Add("ContentText", "  האם ברצונך למחוק את הטווח" + " " + ans.Min + " עד " + ans.Max + "?");
+            parameters.Add("ButtonText", "מחיקה");
+            parameters.Add("Color", Color.Secondary);
+            parameters.Add("answerToDelete", ans);
+
+            var options = new DialogOptions() { CloseButton = false, MaxWidth = MaxWidth.ExtraSmall };
+            var dialog = DialogService.Show<DeleteAnswerComponent>("", parameters, options);
+            var result = await dialog.Result;
+
+            if (!result.Cancelled)
+            {
+                AnswersByQuestionSLIDER.Remove(ans);
+                await DeleteAnswer(ans);               
+                UpdateMinMaxValues(); 
+            }
+            StateHasChanged();
+        }
+    }
+
+
+    void UpdateMinMaxValues()
+    {
+        for (int i = 1; i < AnswersByQuestionSLIDER.Count; i++)
+        {
+            var currentAnswer = AnswersByQuestionSLIDER[i];
+            var previousAnswer = AnswersByQuestionSLIDER[i - 1];
+            currentAnswer.Min = previousAnswer.Max;
+        }
+    }
+
+
+    async Task DeleteAnswer(Answer ans)
+    {
+
+        //if (isMultiplateClick)
+        //{
+        //    AnswersByQuestionMULTIPLE.Remove(ans);
+        //} if (isSliderClick)
+        //{
+        //    AnswersByQuestionSLIDER.Remove(ans);
+        //}
+
+        Console.WriteLine(AnswersByQuestionSLIDER.Count);
+
+        if (AnswersByQuestionMULTIPLE.Count == 0 || AnswersByQuestionSLIDER.Count == 0)
+        {
+            stage2 = true;
+            addDisabled = "";
+        }
+
+        var DeleteResponse2  = await Http.DeleteAsync("api/Game/DeleteScalesAnswers/" + ans.Id);
+        var DeleteResponse3 = await Http.DeleteAsync("api/Game/DeleteResourcesAnswers/" + ans.Id);
+
+        var DeleteResponse = await Http.DeleteAsync("api/Game/DeleteAnswer/" + ans.Id);      
+
+        Answer deletedFromSelected = selectedMultiplateAnswers.FirstOrDefault(m => m.Id == ans.Id);
+        selectedMultiplateAnswers.Remove(deletedFromSelected);
+        // allMultiplateAnswersSelected = selectedMultiplateAnswers.Count >= AnswersByQuestionMULTIPLE.Count;
+
+
+        Answer deletedFromSelected2 = selectedSliderAnswers.FirstOrDefault(s => s.Id == ans.Id);
+        selectedSliderAnswers.Remove(deletedFromSelected2);
+        // allSliderAnswersSelected = selectedSliderAnswers.Count >= AnswersByQuestionSLIDER.Count;
+
+        if (AnswersByQuestionMULTIPLE.Count >= 2 && !isEmpty || AnswersByQuestionSLIDER.Count >= 2)
+        {
+            stage2 = false;
+            addDisabled = "";
+        }
+        if (AnswersByQuestionSLIDER.Count >= 4 || AnswersByQuestionMULTIPLE.Count >= 4)
+        {
+            addDisabled = "addDisabled";
+        }
+
+        if (isMultiplateClick || AnswersByQuestionMULTIPLE.Count == 0)
+        {
+            hiddenMULTIPLE = "";
+            hiddenSLIDER = "";
+        }
+        if (isSliderClick || AnswersByQuestionSLIDER.Count == 0)
+        {
+            hiddenMULTIPLE = "";
+            hiddenSLIDER = "";
+        }
+        StateHasChanged();
+    }
+
+    private async Task updateAnswerValues(Answer a)
+    {
+        var parameters = new DialogParameters();
+        parameters.Add("SavedGame", SavedGame);
+        parameters.Add("answer", a);
+        parameters.Add("isMultiplateClick", isMultiplateClick);
+        parameters.Add("isSliderClick", isSliderClick);
+        parameters.Add("isClicked", isReady);
+
+        var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.ExtraExtraLarge,
+                CloseOnEscapeKey = false,
+                CloseButton = false,
+                DisableBackdropClick = true,
+            };
+        var dialog = DialogService.Show<EditValues>("", parameters, options);
+
+        var result = await dialog.Result;
+
+        if (!result.Cancelled && result.Data is bool isAnswerSelected && isAnswerSelected)
+        {
+            isClicked = true;
+
+            if (isMultiplateClick)
+            {
+                // Check if 'a' is not already in the selectedMultiplateAnswers list
+                if (!selectedMultiplateAnswers.Contains(a))
+                {
+                    selectedMultiplateAnswers.Add(a);
+                    allMultiplateAnswersSelected = selectedMultiplateAnswers.Count >= AnswersByQuestionMULTIPLE.Count;
+                }
+            }
+            else if (isSliderClick)
+            {
+                // Check if 'a' is not already in the selectedSliderAnswers list
+                if (!selectedSliderAnswers.Contains(a))
+                {
+                    selectedSliderAnswers.Add(a);
+                    allSliderAnswersSelected = selectedSliderAnswers.Count >= AnswersByQuestionSLIDER.Count;
+                }
+            }
+        }
+
+    }
+
+    private string GetAnswerButtonClass(Answer answer)
+    {
+        if (isMultiplateClick && selectedMultiplateAnswers.Contains(answer))
+        {
+            return "answer-button selected";
+        }
+        else if (isSliderClick && selectedSliderAnswers.Contains(answer))
+        {
+            return "answer-button selected";
+        }
+        else
+        {
+            return "answer-button";
+        }
+    }
+
+
+    private async Task Ready()
+    {
+        isReady = true;
+
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+}

@@ -1,0 +1,438 @@
+﻿@using NufarMeir_GalOxenberg.Shared.DTOs
+@using System.Text.Json;
+@inject HttpClient Http
+@inject NavigationManager navigationManager
+@inject IDialogService DialogService
+@inject IJSRuntime jsRuntime
+
+<PageTitle>Edit Unexpected</PageTitle>
+
+<style>
+
+    :root{
+        --mud-palette-surface: #EFEED8;
+        --mud-palette-primary: #12273D;
+        --mud-palette-primary-lighten: #1C3D59;
+        --mud-palette-secondary: #12273D;
+        --mud-palette-text-disabled: lightslategray;
+        --mud-palette-secondary-darken: #1C3D59;
+    }
+
+    .form-control-lg {
+        line-height: 3vh;
+    }
+
+    textarea.form-control-lg {
+        min-height: 17vh;
+    }
+
+        .Dialog{
+    flex-direction: column;
+    background-color: var(--mud-palette-surface);
+    border-radius: var(--mud-default-borderradius);
+    -webkit-animation: mud-open-dialog-center .1s cubic-bezier(.39,.575,.565,1) both;
+    animation: mud-open-dialog-center .1s cubic-bezier(.39,.575,.565,1) both;
+    box-shadow: 0 11px 15px -7px rgba(0,0,0,.2), 0 24px 38px 3px rgba(0,0,0,.14), 0 9px 46px 8px rgba(0,0,0,.12);
+  overflow: hidden;
+    width: 550px;
+    height:auto;
+    display: flex;
+    }
+
+    .mud-dialog .mud-dialog-title {
+        padding: 0px 20px;
+        display: flex;
+    }
+
+    .resources2 {
+        position: fixed;
+        width: 44%;
+        height: 40%;
+        border-radius: 15px 15px 15px 15px;
+        text-align: center;
+        color: white;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-evenly;
+        align-items: center;
+        padding: 0.5%;
+        background-color: #EFEED8;
+        box-shadow: 0 15px 15px 0 rgba(145, 142, 106, 1), 0 7px 7px 0 rgba(145, 142, 106, 1);
+        margin-top: 1.7rem;
+    }
+
+    .mud-input {
+        width: 140%;
+        margin-top: 0.5rem;
+    }
+
+        .mud-input > input.mud-input-root-outlined, div.mud-input-slot.mud-input-root-outlined {
+            padding: 11.5px 14px;
+        }
+
+        .mud-input > input.mud-input-root, div.mud-input-slot.mud-input-root {
+            font-size: 11px;
+        }
+
+    .mud-input-control.mud-input-number-control.mud-input-showspin .mud-input:not(.mud-input-adorned-end).mud-input-outlined input {
+        padding-inline-start: 7px
+    }
+
+
+    .mud-input-control > .mud-input-control-input-container {
+        width: fit-content;
+        margin: 0.3rem;
+    }
+
+    .mud-input.mud-input-outlined {
+        position: inherit;
+        width: auto;
+    }
+
+    .CENTER{
+            display: flex;
+    justify-content: center;
+    }
+
+    .form-control {
+        font-size: 1rem;
+        line-height: 5rem;
+        border: none;
+        color: #12273D;
+        background-color: #F7F6F0;
+    }
+
+    .mud-tooltip-root.mud-tooltip-inline {
+    display: inline-block;
+}
+
+    .form-control-lg {
+        line-height: 3vh;
+    }
+
+    textarea.form-control-lg {
+        min-height: 12vh;
+    }
+
+    .mud-tooltip-root.mud-tooltip-inline {
+    display: flex;
+    justify-content: end;
+    position: relative;
+        float: left;
+}
+</style>
+
+<MudDialog Class="Dialog">
+          
+     <TitleContent>
+        <div style="justify-content: center; align-items: stretch; display: inherit;margin-top: 1vh;">
+            <MudIconButton Style="margin-right:0.5rem;" OnClick="BackToBoard" Icon="@Icons.Material.Filled.NavigateNext" Color="Color.Info">
+                <p>חזרה ללוח</p>
+            </MudIconButton>
+            <div style="background-color:#EFEED8; font-family:Fredoka; color:rgb(18, 39, 61);width: -webkit-fill-available; margin-top: 1rem;">
+                @NewUnexpected.unexpectedContent
+            </div>
+        </div>
+     </TitleContent>
+
+     <DialogContent>
+
+        <MudTabs @ref="tabs" Style="font-family:Fredoka; padding-left: 2rem; padding-right: 2rem;font-size:16px;" Elevation="1" Centered="true" Color="@Color.Primary">
+
+        <MudTabPanel Disabled=@Disabled1 Text="1. תיאור ההפתעה" ToolTip="יש למלא את שני השלבים כדי להמשיך">
+                <MudText Style="font-family:Fredoka;padding-top: 2rem;font-size:15  px;">
+            למה כדאי לשים לב? 
+            <br />
+            <p>
+1. שההפתעה משפיעה רק על המשאבים של מי שפתח/ה אותה </p>
+            <p>
+                        2. שנסביר מהי מהות ההפתעה
+                    </p>
+                                <p>
+                        3. שההפתעה יכולה להיות חיובית או שלילית, הבחירה שלנו
+                    </p>
+                </MudText>
+        <br />
+          <textarea type="text" style="font-size: 16px;" Label="Outlined" @bind-value="@NewUnexpected.unexpectedContent" @onkeyup="IsTypeCheck" @bind-value:event="oninput" placeholder="@placeHolder" Variant="Variant.Outlined" class="form-control form-control-lg @isValid" />
+            <p style="color: red;padding-top: 0.5rem;">@msg</p>
+            <MudIconButton Disabled=@stage1 Style="transform: rotate(180deg); right: 93%;" OnClick="() => Activate(1)" Icon="@Icons.Material.Filled.NavigateNext" Color="Color.Info" />
+        </MudTabPanel>
+
+        <MudTabPanel Class="CENTER" Disabled=@stage1 OnClick="stage1Completed" Text="2. השפעת ההפתעה" ToolTip="יש למלא את שני השלבים כדי להמשיך">
+                <p style="padding-top:2vh; font-size:14px">זכרו שההשפעה על המדדים יכולה להיות חיובית או שלילית (לדוגמה: 10-, 5) </p>
+
+            <div class="resources2">
+                    <p style="color:#12273D; font-size: 1rem; font-weight: 450; position: absolute; margin-top: -7.9rem; margin-right: 0.5rem;margin-bottom: 2vh;">משאבים</p>
+                @foreach (Resource r in resourcesList)
+                {
+                    var UnexpectedAnswer = UnexpectedResourcesList.FirstOrDefault(ra => ra.resourcesId == r.Id);
+                    if (UnexpectedAnswer != null)
+                    {
+                            <div class="oneresource" style="height:75%; margin-top:2rem; display: inline-table; margin-left:auto;margin-right: 0.3vh;width: 33%;">
+                                <div style="transform: translate(0%, 50%);">
+                                    <p style="color:rgb(18, 39, 61); font-size:12px; padding-top:0.3rem;line-break: auto; height:30%; position: relative;">
+                                        @*                            <MudNumericField Style="display: flex; width: 90%;margin-right: auto; margin-left:auto" @bind-Value="resourceAnswer.changedQuantity" Variant="Variant.Outlined" AutoFocus="true" @onfocus="() => updateChangedResource(r.Id, resourceAnswer.changedQuantity)" />
+                                *@
+                                        <input id="NUMwidth" type="number"
+                                       value="@UnexpectedAnswer.changedQuantity"
+                                       style="display: flex; width: 90%;margin-right: auto; margin-left:auto; direction: ltr;
+                                        border: 1px solid;
+                                        border-radius: 3px;
+                                        background: #EFEED8;
+                                        text-align: center;"
+                                          @oninput="(ChangeEventArgs args) =>
+                                        {
+                                            if (int.TryParse(args.Value.ToString(), out int result))
+                                            {
+                                               UnexpectedAnswer.changedQuantity = result;
+                                               updateChangedResource(r.Id, UnexpectedAnswer.changedQuantity);
+                                            }
+                                        }" />
+                                        <br> @r.Type
+                                    </p>
+                                </div>
+                            </div>
+                    }
+                }
+            </div>
+             <MudTooltip Text="כדאי לשים לב! לאחר השמירה לא ניתן יהיה להחליף את תוכן המשושה לקבלת החלטה" Arrow="true" Color="Color.Info" Placement=" Placement.Bottom">
+                    <MudButton style="font-family:Fredoka; margin-top: 33vh; display: flex;" Color="Color.Secondary" Variant="Variant.Filled" OnClick="Ready">שמירה וסיום</MudButton>
+            </MudTooltip>
+        </MudTabPanel>
+    </MudTabs>
+
+</DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [Parameter]
+    public UnexpectedElement LastAddedUnexpected { get; set; }
+    [Parameter]
+    public GameClass SavedGame { get; set; }
+    UnexpectedElement NewUnexpected = new UnexpectedElement();
+    MudTabs tabs;
+    public bool Disabled1 = false;
+    public string placeHolder = "לדוגמה: עקב הצפה בקומת הלובי של המלון יש להחליף את השטיחים בחדרי הישיבות שבקומה ולבצע תיקוני צבע. עלות התיקון 50,000 שקלים";
+    public bool stage1 = true;
+    public bool stage2 = true;
+    public bool isReady = false;
+    public string msg = "";
+    public string isValid = "";
+    public List<Resource> resourcesList = new List<Resource>();
+    public List<UnexpectedResourcesToChange> UnexpectedResourcesList = new List<UnexpectedResourcesToChange>();
+    public bool allResourcesExist = false;
+    public bool resultCancelled = false;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Check if the navigation is happening to a different page
+        var uri = navigationManager.ToAbsoluteUri(navigationManager.Uri);
+        if (!uri.AbsolutePath.EndsWith("/EditUnexpected"))
+        {
+            // Store the UnexpectedResourcesList in session storage using its unexpectedId as the key
+            if (UnexpectedResourcesList != null && NewUnexpected != null)
+            {
+                var jsonList = JsonSerializer.Serialize(UnexpectedResourcesList);
+                await jsRuntime.InvokeVoidAsync("sessionStorage.setItem", $"UnexpectedResourcesList_{NewUnexpected.id}", jsonList);
+            }
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        NewUnexpected = LastAddedUnexpected;
+
+        var storedResultCancelled = await jsRuntime.InvokeAsync<string>("sessionStorage.getItem", "resultCancelled");
+        if (storedResultCancelled != null)
+        {
+            resultCancelled = bool.Parse(storedResultCancelled);
+        }
+
+        if (NewUnexpected != null && !string.IsNullOrEmpty(NewUnexpected.unexpectedContent))
+        {
+            var storedUnexpectedResourcesList = await jsRuntime.InvokeAsync<string>("sessionStorage.getItem", $"UnexpectedResourcesList_{NewUnexpected.id}");
+            if (storedUnexpectedResourcesList != null)
+            {
+                var unexpectedResourcesList2 = JsonSerializer.Deserialize<List<UnexpectedResourcesToChange>>(storedUnexpectedResourcesList);
+                if (unexpectedResourcesList2 != null)
+                {
+                    UnexpectedResourcesList = unexpectedResourcesList2;
+                    // Now that you have the deserialized list, you can perform any required operations with it.
+                    // For example, you can check if all resources exist in the list.
+                    allResourcesExist = resourcesList.All(r => unexpectedResourcesList2.Any(re => re.resourcesId == r.Id));
+                }
+            }
+        }
+
+        if (NewUnexpected != null && !string.IsNullOrEmpty(NewUnexpected.unexpectedContent))
+        {
+            isValid = "is-valid";
+            msg = "";
+            stage1 = false;
+            isReady = true;
+        }
+
+        var getResponse6 = await Http.GetAsync("api/Game/resourceIdByGameId/" + SavedGame.Id);
+        if (getResponse6.IsSuccessStatusCode)
+        {
+            var resourceIdFromSql = await getResponse6.Content.ReadFromJsonAsync<List<int>>();
+            if (resourceIdFromSql != null)
+            {
+                foreach (var resourceId in resourceIdFromSql)
+                {
+                    var getResponse7 = await Http.GetAsync("api/Game/resourcesById/" + resourceId);
+                    if (getResponse7.IsSuccessStatusCode)
+                    {
+                        var resourceFromSql = await getResponse7.Content.ReadFromJsonAsync<Resource>();
+                        if (resourceFromSql != null)
+                        {
+                            resourcesList.Add(resourceFromSql);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!allResourcesExist)
+        {
+            foreach (var r in resourcesList)
+            {
+                if (!resultCancelled)
+                {
+                    var existingResource = UnexpectedResourcesList.FirstOrDefault(re => re.resourcesId == r.Id);
+                    if (existingResource == null)
+                    {
+                        var postResponse = await Http.PostAsJsonAsync<int>("api/Game/addUnexpectedResource/" + r.Id + "/" + NewUnexpected?.id, r.Id);
+                        if (postResponse.IsSuccessStatusCode)
+                        {
+                            var newUnexpectedResource = new UnexpectedResourcesToChange()
+                                {
+                                    resourcesId = r.Id,
+                                    unexpectedId = NewUnexpected.id,
+                                    changedQuantity = 0,
+                                };
+                            UnexpectedResourcesList.Add(newUnexpectedResource);
+                        }
+                        else
+                        {
+                            return;
+                        }
+                    }
+                }
+            }
+
+            // Store the updated UnexpectedResourcesList in session storage.
+            var jsonList = JsonSerializer.Serialize(UnexpectedResourcesList);
+            await jsRuntime.InvokeVoidAsync("sessionStorage.setItem", "UnexpectedResourcesList", jsonList);
+        } 
+        else 
+        {
+            UnexpectedResourcesList.Clear();
+
+            var getResponse = await Http.GetAsync("api/Game/unexpectedChangedResources/" + NewUnexpected.id);
+            if (getResponse.IsSuccessStatusCode == true)
+            {
+                var changedResources = getResponse.Content.ReadFromJsonAsync<List<UnexpectedResourcesToChange>>().Result;
+                UnexpectedResourcesList = changedResources; 
+            }
+
+        }
+    }
+
+
+    private async Task BackToBoard()
+    {
+        if (isReady == false)
+        {
+            var parameters = new DialogParameters();
+            parameters.Add("ContentText", "התהליך לא הושלם, חזרה ללוח תמחק את ההפתעה הקיימת");
+            parameters.Add("ButtonText", "מחיקה ואישור");
+            parameters.Add("Color", Color.Secondary);
+
+            var options = new DialogOptions() { CloseButton = false, MaxWidth = MaxWidth.ExtraSmall };
+            var dialog = DialogService.Show<BackToBoard>("", parameters, options);
+            var result = await dialog.Result;
+
+            if (!result.Cancelled)
+            {             
+                resultCancelled = true;
+                var DeleteResponse2 = await Http.DeleteAsync("api/Game/DeleteUnexpectedResource/" + NewUnexpected.id);
+                var DeleteResponse = await Http.DeleteAsync("api/Game/DeleteUnexpected/" + NewUnexpected.id);
+
+                await jsRuntime.InvokeVoidAsync("sessionStorage.setItem", "resultCancelled", resultCancelled.ToString());
+
+                navigationManager.NavigateTo($"EditorBoard/" + SavedGame.Id);
+            } 
+        }
+        else
+        {
+            navigationManager.NavigateTo($"EditorBoard/" + SavedGame.Id);
+        }
+    }
+
+    void IsTypeCheck()
+    {
+        if (NewUnexpected == null || NewUnexpected.unexpectedContent == null || NewUnexpected.unexpectedContent.Length <= 2)
+        {
+            isValid = "is-invalid";
+            msg = "אופס, תיאור ההפתעה צריך להיות ארוך מ-2 תווים";
+            stage1 = true;
+        }
+        else
+        {
+            isValid = "is-valid";
+            msg = "";
+            stage1 = false;
+        }
+    }
+
+    void Activate(int index)
+    {
+        tabs.ActivatePanel(index);
+    }
+
+    private async Task stage1Completed()
+    {
+        var getResponse4 = await Http.GetAsync("api/Game/updateUnexpectedDescription/" + NewUnexpected.unexpectedContent + "/" + NewUnexpected.id);
+    }
+
+    //private async Task updateChangedResource(int resourceId, int quantity)
+    //{
+    //    var getResponse4 = await Http.GetAsync("api/Game/updateUeChangedQuantity/" + resourceId + "/" + quantity + "/" + NewUnexpected.id);
+    //    if (getResponse4.IsSuccessStatusCode == true)
+    //    {
+    //        //TODO: ADD A CHECK TO THE STAGE         
+    //    }
+    //}
+
+    private async Task updateChangedResource(int resourceId, int quantity)
+    {
+        var getResponse4 = await Http.GetAsync($"api/Game/updateUeChangedQuantity/{resourceId}/{quantity}/{NewUnexpected.id}");
+        if (getResponse4.IsSuccessStatusCode)
+        {
+            // Find the index of the corresponding item in the UnexpectedResourcesList using resourceId and NewUnexpected.id.
+            var existingResourceIndex = UnexpectedResourcesList.FindIndex(re => re.resourcesId == resourceId && re.unexpectedId == NewUnexpected.id);
+
+            // Update the changedQuantity property with the new value.
+            UnexpectedResourcesList[existingResourceIndex].changedQuantity = quantity;
+
+            // Store the updated UnexpectedResourcesList in session storage.
+            var jsonList = JsonSerializer.Serialize(UnexpectedResourcesList);
+            await jsRuntime.InvokeVoidAsync("sessionStorage.setItem", "UnexpectedResourcesList", jsonList);
+        }
+        else
+        {
+            // Handle the case when the GET request to updateUeChangedQuantity fails.
+            Console.WriteLine("Error updating changed resource. Status Code: " + getResponse4.StatusCode);
+        }
+    }
+
+
+    private async Task Ready()
+    {
+        isReady = true;
+
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+}

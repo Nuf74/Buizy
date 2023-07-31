@@ -1,0 +1,306 @@
+﻿@using NufarMeir_GalOxenberg.Client.Pages
+@using NufarMeir_GalOxenberg.Shared.DTOs
+@inject HttpClient Http
+@inject NavigationManager navigationManager
+<PageTitle>Settings</PageTitle>
+
+<style>
+    .mud-dialog-title {
+        background: #EFEED8;
+        position: sticky;
+        top: 0;
+    }
+
+    .mud-tooltip-root.mud-tooltip-inline {
+        display: table-cell;
+    }
+
+    :root {
+        --mud-Info: #12273D;
+        --mud-palette-info-darken: #1C3D59;
+    }
+
+    .mud-info-text {
+        --mud-Info: #12273D;
+    }
+
+    .--mud-palette-info {
+        --mud-Info: #12273D;
+    }
+
+</style>
+
+<MudDialog Style="margin-right:5rem; box-shadow: 0 10px 10px 0 rgba(9, 20, 30, 0.5), 0 4px 4px 0 rgba(9, 20, 30, 0.5); top:0;">
+    <TitleContent>
+        <div style="display: flex; align-items: center; font-family:Fredoka;direction:rtl; align-items: start; font-size: 18px; font-weight: 600;">
+הגדרות המשחק
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <MudText>
+             <EditForm Model="CurGame" OnValidSubmit="Submit">
+                <div style="font-family:Fredoka; font-weight: 500;">
+                    שם המשחק:
+                    <input style="font-family:Fredoka;  font-size:14px;" type="name" @bind="CurGame.GameName" @bind:event="oninput" @onkeyup="IsTypeCheck" class="form-control form-control-lg @isValid">
+                <p style="color:black">@msg</p>
+                </div>
+                <div style="display:inline; font-family:Fredoka;  font-weight: 500;">
+                    מספר המשבצות בלוח:
+                    <MudTooltip Text="על מחצית מכמות המשבצות להכיל סבב קבלת החלטות" Arrow="true" Placement="Placement.Left" Color="Color.Info">
+                        <MudIconButton style="font-family:Fredoka" Icon="@Icons.Material.Filled.Info" Color="Color.Info" />
+                      </MudTooltip>
+                    <div style="display:-webkit-box;">
+                    <p style="background-color:@numColor1; font-family:Fredoka; border-radius:5px; justify-content:center; width: fit-content;padding-right:1rem;padding-left:1rem;cursor:pointer" @onclick="@(() => HexNumbers(null, 6))">6</p>
+                    <p style="background-color:@numColor2; font-family:Fredoka; border-radius:5px; justify-content:center; width: fit-content;padding-right:1rem;padding-left:1rem;margin-right:0.3rem;cursor:pointer" @onclick="@(() => HexNumbers(null, 9))">9</p>
+                    <p style="background-color:@numColor3; font-family:Fredoka; border-radius:5px; justify-content:center; width: fit-content;padding-right:1rem;padding-left:1rem;margin-right:0.3rem;cursor:pointer" @onclick="@(() => HexNumbers(null, 12))">12</p>                 
+                    </div>
+                </div>
+                    @if(isGoingtoDelete){
+                            <p style="color: red; font-family:Fredoka;">@toolTipText</p>
+                        }
+                <div style="display:inline; font-family:Fredoka;  font-weight: 500;">
+                    <br />
+                    מספר השניות לסבב קבלת החלטה:
+                    <MudTooltip style="font-family:Fredoka;" Arrow="true" Placement="Placement.Left" Color="Color.Info">
+                    <ChildContent>
+                        <MudIconButton Icon="@Icons.Material.Filled.Info" Color="Color.Info" />
+</ChildContent>
+<TooltipContent>
+                            <MudText Style="font-family:Fredoka; font-size:13px; font-weight:500">הזמן כולל:</MudText>
+                            <MudText Style="font-family:Fredoka; font-size:13px; font-weight:500">1. תיאור המקרה</MudText>
+                            <MudText Style="font-family:Fredoka; font-size:13px;font-weight:500">2. עיון באפשרויות המענה</MudText>
+                            <MudText Style="font-family:Fredoka; font-size:13px;font-weight:500">3. קבלת ההחלטה</MudText>
+</TooltipContent>
+                    </MudTooltip>
+                     <div style="display:-webkit-box;">
+                        <p style="background-color:@timeColor1; font-family:Fredoka; border-radius:5px; justify-content:center; width: fit-content;padding-right:1rem;padding-left:1rem; cursor:pointer" @onclick="@(() => TimeForRound(null, 60))">60</p>
+                        <p style="background-color:@timeColor2; font-family:Fredoka; border-radius:5px; justify-content:center; width: fit-content;padding-right:1rem;padding-left:1rem;margin-right:0.3rem; cursor:pointer" @onclick="@(() => TimeForRound(null, 90))">90</p>
+                        <p style="background-color:@timeColor3; font-family:Fredoka; border-radius:5px; justify-content:center; width: fit-content;padding-right:1rem;padding-left:1rem;margin-right:0.3rem; cursor:pointer" @onclick="@(() => TimeForRound(null, 120))">120</p>
+                </div>
+                </div>
+             </EditForm>
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        @if (CurGame.GameName.Length >= 2 && CurGame.CardsQuantity != 0 && CurGame.Time != 0)
+        {
+            <MudButton style="font-family:Fredoka" Color="Color.Info" Variant="Variant.Filled" OnClick="Submit">שמירה</MudButton>
+        }
+        else
+        {
+            <MudButton style="font-family:Fredoka" Color="Color.Info" Variant="Variant.Filled" Disabled>שמירה</MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [Parameter]
+    public int EditorId { get; set; }
+    [Parameter]
+    public GameClass SavedGame { get; set; }
+    [Parameter]
+    public bool isMoreThen6 { get; set; }
+    [Parameter]
+    public Action<GameClass> GameUpdatedCallback { get; set; }
+    List<GamesByEditor> GamesForEditor = new List<GamesByEditor>();
+    public GameClass CurGame = new GameClass();
+    public string isValid;
+    public bool isExists = false;
+    public string msg;
+    public string numColor1 = "#EFEED8; color:black";
+    public string numColor2 = "#EFEED8; color:black";
+    public string numColor3 = "#EFEED8; color:black";
+    public string timeColor1 = "#EFEED8; color:black";
+    public string timeColor2 = "#EFEED8; color:black";
+    public string timeColor3 = "#EFEED8; color:black";
+    public bool isGoingtoDelete = false;
+    public string toolTipText = "";
+    public int changedHex = 0;
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        var getResponse = await Http.GetAsync("api/Game/gamesByEditorId/" + EditorId);
+        if (getResponse.IsSuccessStatusCode == true)
+        {
+            var GamesForEditorFromSQL = getResponse.Content.ReadFromJsonAsync<List<GamesByEditor>>().Result;
+            if (GamesForEditorFromSQL != null)
+            {
+                GamesForEditor = GamesForEditorFromSQL;
+            }
+        }
+
+        if (SavedGame == null)
+        {
+            //TODO: SOMETHING
+        } else {
+            CurGame.GameName = SavedGame.GameName;
+            CurGame.CardsQuantity = SavedGame.CardsQuantity;
+            CurGame.Time = SavedGame.Time;
+            CurGame.EditorId = SavedGame.EditorId;
+            CurGame.Id = SavedGame.Id;
+            HexNumbers(null, CurGame.CardsQuantity);
+            TimeForRound(null, CurGame.Time);
+        }
+    }
+
+    async Task IsTypeCheck()
+    {
+        if (CurGame.GameName.Length <= 1 || CurGame.GameName.Length > 11)
+        {
+            isValid = "is-invalid";
+            msg = "יש להזין שם משחק בן 2-10 תווים";
+        }
+        if (CurGame.GameName.Length >= 2 && CurGame.GameName.Length <= 10)
+        {
+            isValid = "is-valid";
+            msg = "";
+
+            foreach (var g in GamesForEditor)
+            {
+                if (CurGame.GameName == g.GameName || CurGame.GameName == g.GameName + " ")
+                {
+                    isValid = "is-invalid";
+                    msg = "יש להזין שם משחק ייחודי";
+                }
+            }
+        }      
+        StateHasChanged();
+    }
+
+    private async Task Submit()
+    {
+        if (isGoingtoDelete==true)
+        {
+            var getResponse = await Http.GetAsync("api/Game/questionsAboveIndex/" + CurGame.Id + "/" + changedHex);
+
+            if (getResponse.IsSuccessStatusCode == true)
+            {
+                var questions = getResponse.Content.ReadFromJsonAsync<List<Question>>().Result;
+
+                foreach (var q in questions)
+                {
+                    var getResponse2 = await Http.GetAsync("api/Game/answersWithQuestionsAboveIndex/" + q.id);
+                    if (getResponse2.IsSuccessStatusCode == true)
+                    {
+                        var answers = getResponse2.Content.ReadFromJsonAsync<List<Answer>>().Result;
+
+                        foreach (var a in answers)
+                        {
+                            var DeleteResponse3 = await Http.DeleteAsync("api/Game/DeleteScalesAnswers/" + a.Id);
+                            var DeleteResponse4 = await Http.DeleteAsync("api/Game/DeleteResourcesAnswers/" + a.Id);
+                            var DeleteResponse5 = await Http.DeleteAsync("api/Game/DeleteAnswer/" + a.Id);
+                        }
+                    }
+                }
+                var DeleteResponse2 = await Http.DeleteAsync("api/Game/DeleteIndexesQUES/" + CurGame.Id + "/" + changedHex);
+            }
+
+            var getResponse3 = await Http.GetAsync("api/Game/unexpectedAboveIndex/" + CurGame.Id + "/" + changedHex);
+
+            if (getResponse3.IsSuccessStatusCode == true)
+            {
+                var unexpecteds = getResponse3.Content.ReadFromJsonAsync<List<UnexpectedElement>>().Result;
+
+                foreach (var u in unexpecteds)
+                {
+                    var DeleteResponse6 = await Http.DeleteAsync("api/Game/DeleteUnexpectedResource/" + u.id);
+                    var DeleteResponse7 = await Http.DeleteAsync("api/Game/DeleteUnexpected/" + u.id);
+                }
+                var DeleteResponse8 = await Http.DeleteAsync("api/Game/DeleteIndexesUNEX/" + CurGame.Id + "/" + changedHex);
+            }
+        }
+
+        if (SavedGame == null)
+        {
+            var postResponse = await Http.PostAsJsonAsync("api/Game/addGame/" + CurGame.GameName + "/" + CurGame.CardsQuantity + "/" + CurGame.Time + "/" + EditorId + "/" + false, CurGame);
+            if (postResponse.IsSuccessStatusCode != true)
+            {
+                throw new Exception("");
+            }
+            else
+            {
+                var getResponse3 = await Http.GetAsync("api/Game/GetGameIdByName/" + CurGame.GameName);
+                if (getResponse3.IsSuccessStatusCode == true)
+                {
+                    var gameId = getResponse3.Content.ReadFromJsonAsync<int>().Result;
+
+                    navigationManager.NavigateTo($"EditorBoard/{gameId}");
+                }
+            }
+        } else {  
+            var updateResponse = await Http.GetAsync("api/Game/updateSettings/" + CurGame.GameName + "/" + CurGame.CardsQuantity + "/" + CurGame.Time + "/" + EditorId + "/" + CurGame.Id);
+            if (updateResponse.IsSuccessStatusCode)
+            {
+                // Invoke the callback to notify the parent component
+                GameUpdatedCallback?.Invoke(CurGame);
+                MudDialog.Close();
+            }
+        }
+    }
+
+    private async Task HexNumbers(ChangeEventArgs e, int HexNum)
+    {
+        int initialCardsQuantity = CurGame.CardsQuantity;
+        changedHex = HexNum;
+        if (initialCardsQuantity > HexNum)
+        {
+            if (isMoreThen6)
+            {
+                toolTipText = "עדכון מספר המשבצות ימחק חלק מתכני המשושים";
+            }
+            isGoingtoDelete = true;            
+        } else {
+            toolTipText = "";
+            isGoingtoDelete = false;
+        }
+
+        CurGame.CardsQuantity = HexNum;
+
+        if (HexNum == 6)
+        {
+
+            numColor1 = "#12273D; color:white";
+            numColor2 = "#EFEED8; color:black";
+            numColor3 = "#EFEED8; color:black";
+        } 
+        if (HexNum == 9)
+        {
+            numColor1 = "#EFEED8; color:black";
+            numColor2 = "#12273D; color:white";
+            numColor3 = "#EFEED8; color:black";
+        }
+        if (HexNum == 12)
+        {
+            numColor1 = "#EFEED8; color:black";
+            numColor2 = "#EFEED8; color:black";
+            numColor3 = "#12273D; color:white";
+        }
+    }
+
+    private async Task TimeForRound(ChangeEventArgs e, int RoundTime)
+    {       
+        CurGame.Time = RoundTime;
+        
+        if (RoundTime == 60)
+        {
+            timeColor1 = "#12273D; color:white";
+            timeColor2 = "#EFEED8; color:black";
+            timeColor3 = "#EFEED8; color:black";
+        }
+        if (RoundTime == 90)
+        {
+            timeColor1 = "#EFEED8; color:black";
+            timeColor2 = "#12273D; color:white";
+            timeColor3 = "#EFEED8; color:black";
+        }
+        if (RoundTime == 120)
+        {
+            timeColor1 = "#EFEED8; color:black";
+            timeColor2 = "#EFEED8; color:black";
+            timeColor3 = "#12273D; color:white";
+        }
+    }
+}

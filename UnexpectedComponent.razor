@@ -1,0 +1,158 @@
+﻿@using Microsoft.AspNetCore.SignalR.Client
+@using NufarMeir_GalOxenberg.Shared.DTOs
+@inject NavigationManager navigationManager
+@inject HttpClient Http
+@using NufarMeir_GalOxenberg.Client.Pages
+
+
+<style>
+
+
+    .mud-overlay .mud-overlay-scrim.mud-overlay-dark {
+        background-color: lightgray;
+        opacity: 20%;
+    }
+
+    .mud-button-filled.mud-button-filled-secondary {
+        background-color: #A7BF4E;
+        color: white;
+    }
+
+    .mud-dialog-container {
+        display: block;
+        top: 15%;
+    }
+
+    .mud-dialog {
+        transform: translate(-50%, -50%);
+        margin-right: 25%;
+    }
+
+    .mud-overlay.mud-overlay-dialog {
+        z-index: calc(var(--mud-zindex-dialog) -1);
+    }
+</style>
+
+<PageTitle>Surprise</PageTitle>
+
+<MudDialog Style="box-shadow: 0 10px 10px 0 rgba(9, 20, 30, 0.5), 0 4px 4px 0 rgba(9, 20, 30, 0.5); top:0; overflow:hidden">
+    <TitleContent>
+        <div style="display: flex; align-items: flex-start;">
+            <div style="flex: 1;">
+            @if (user == unexpectedUser)
+            {
+            <p style="font-family:Fredoka; font-size:24px; margin-bottom: 0; position: relative; right: 4.5rem; top: 1rem;}">
+            @unexpectedUser, יש לך הפתעה
+            </p>
+            } else {
+            <p style="font-family:Fredoka; font-size:24px; margin-bottom: 0; position: relative; right: 4.5rem; top: 1rem;}">
+                @user, @unexpectedUser קיבל/ה הפתעה
+            </p>
+             }
+            </div>
+            <div style="flex-shrink: 0;">
+                <MudImage Src="images/surprise.png" Style="scale:15%; object-position:right top; position: fixed; bottom: -2rem; left: 13rem; "></MudImage>
+            </div>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <MudText>
+            <EditForm Model="curUnexpected" OnValidSubmit="Submit">
+                <p style="font-family:Fredoka; margin-top:0.8rem" role="status">@curUnexpected.unexpectedContent</p>
+            </EditForm>
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        @if (user == unexpectedUser)
+        {
+            <MudButton style="font-family:Fredoka; transform:scale(80%)" Color="Color.Secondary" Variant="Variant.Filled" OnClick="@(async () => {
+                    await Submit();
+                       MudDialog.SetTitle("");
+                       StateHasChanged();})">אוקיי, אפשר להמשיך</MudButton>
+        } else
+        {
+        <MudButton style="font-family:Fredoka" Color="Color.Secondary" Variant="Variant.Filled" OnClick="@(async () => {
+                    await Submit();
+                       MudDialog.SetTitle("");
+                       StateHasChanged();})" Disabled>אוקיי, אפשר להמשיך</MudButton>
+        }
+
+    </DialogActions>
+</MudDialog>
+
+
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    private HubConnection? hubConnection;
+    [Parameter]
+    public int unexpectedId { get; set; }
+    [Parameter]
+    public string unexpectedUser { get; set; }
+    [Parameter]
+    public string user { get; set; }
+    [Parameter]
+    public GameBoard ParentPage { get; set; }
+    [Parameter]
+    public int gameId { get; set; }
+    public UnexpectedElement curUnexpected = new UnexpectedElement();
+
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(navigationManager.ToAbsoluteUri("./game"))
+            .Build();
+
+
+        hubConnection.On("update_question", async () =>
+        {
+            object data = new
+            {
+                hasAnswered = true,
+                unexpectedId = (int)unexpectedId
+            };
+            var getResponse = await Http.GetAsync("api/Game/update_unExpected/" + true + "/" + unexpectedId);
+            if (getResponse.IsSuccessStatusCode != true)
+            {
+                throw new Exception("Failed to update question");
+            }
+        });
+
+        hubConnection.On("return_to_game", () =>
+        {
+            MudDialog.Close(DialogResult.Ok(true));
+            Task.Run(async () => await ParentPage.RefreshHex());
+            //ParentPage.RefreshHex();
+            navigationManager.NavigateTo($"GameBoard/" + user + "/" + gameId);
+        });
+
+        await hubConnection.StartAsync();
+
+        var getResponse = await Http.GetAsync("api/Game/Unexpected/" + unexpectedId);
+        if (getResponse.IsSuccessStatusCode == true)
+        {
+            var unexpectedToShow = getResponse.Content.ReadFromJsonAsync<UnexpectedElement>().Result;
+
+            if (unexpectedToShow != null)
+            {
+                curUnexpected = unexpectedToShow;
+            }
+        }
+    }
+
+
+
+    private async Task Submit()
+    {
+
+        await ParentPage.ChangeDataAfterUnexpected(unexpectedId);
+
+
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("UnexpectedSubmitted");
+        }
+    }
+
+}
+

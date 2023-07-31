@@ -1,0 +1,69 @@
+﻿@using NufarMeir_GalOxenberg.Shared.DTOs
+@inject HttpClient Http
+<style>
+    :root {
+        --mud-palette-primary: #A7BF4E;
+        --mud-palette-secondery: #12273D;
+    }
+
+    .mud-typography mud-typography-body1 mud-secondary-text {
+        font-family: 'Fredoka';
+        color: white;
+    }
+
+    .mud-button-label {
+        color: white;
+    }
+
+
+    .mud-dialog .mud-dialog-actions {
+        padding: 14px;
+    }
+
+    .mud-button-filled.mud-button-filled-secondary:hover, .mud-button-filled.mud-button-filled-secondary:focus-visible {
+        background-color: #12273D;
+    }
+
+    .mud-button-filled.mud-button-filled-secondary {
+        color: white;
+        background-color: #12273D;
+    }
+
+    .mud-button-filled.mud-button-filled-primary:hover, .mud-button-filled.mud-button-filled-primary:focus-visible {
+        background-color: #A7BF4E;
+    }
+</style>
+
+<MudDialog Style="background-color:#12273D; border-radius: 3rem; box-shadow: 0 15px 15px 0 rgba(9, 20, 30, 1), 0 7px 7px 0 rgba(9, 20, 30, 1); color:white; font-family:Fredoka; width: 64vw; height: 50vh; display:flex; justify-content:center;">
+    <DialogContent>
+        <MudText Class="popUp"><h3 style="text-align:center; font-family:Fredoka; color:#A7BF4E; font-size:16px;">@ContentText2</h3></MudText>
+        <MudText Class="popUp"><p style="font-family:Fredoka;font-size:14px;">@ContentText</p></MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Color="Color.Secondary" Variant=" Variant.Filled" Style="font-family:Fredoka;">ביטול</MudButton>
+        <MudButton Color="@Color" Style="font-family:Fredoka;" Variant=" Variant.Filled" @onclick=DeleteAns>@ButtonText</MudButton>
+    </DialogActions>
+</MudDialog>
+@code {
+
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public string ContentText2 { get; set; }
+
+    [Parameter] public string ContentText { get; set; }
+
+    [Parameter] public string ButtonText { get; set; }
+
+    [Parameter] public Color Color { get; set; }
+
+
+    void Cancel() => MudDialog.Cancel();
+
+
+
+    void DeleteAns()
+    {
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+}

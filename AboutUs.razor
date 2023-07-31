@@ -1,0 +1,48 @@
+﻿<style>
+    .mud-dialog .mud-dialog-content {
+    padding:unset;
+    }
+
+</style>
+
+
+
+<MudDialog Style="background-color:#12273D; border-radius: 3rem; box-shadow: 0 15px 15px 0 rgba(9, 20, 30, 1), 0 7px 7px 0 rgba(9, 20, 30, 1); color:white; font-family:Fredoka; width: 64vw; height: 73vw;">
+    <TitleContent>
+        <MudIconButton OnClick="closeAboutUs" Style="color: white; position: absolute; left: 2vw; top: 1vh; cursor:pointer;" Icon="@Icons.Material.Filled.Close" aria-label="help"></MudIconButton>
+    </TitleContent>
+    <DialogContent>
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
+            <img src="Images/Logo.png" style="margin-bottom: 1rem; width: 20%;" />
+            <p style="color:white; margin-bottom: 1rem; font-size: medium;">מחולל ליצירת משחקי עסקים למנהלות ומנהלים</p>
+            <p>פרויקט גמר | תשפ"ג, 2023</p>
+            <a href="https://www.hit.ac.il/telem/overview" style="font-size: small; color: white; border-bottom: 0.7px solid white; padding-top: 1vh; cursor:pointer;">הפקולטה לטכנולוגיות למידה</a>
+            <div style="display: flex; align-items: center; justify-content: center; margin-left: auto; margin-right: auto; padding-top: 11vh;">
+                <a href="https://www.hit.ac.il/" style="display: contents;">
+                    <img border="0" alt="hit logo" style="width: 20%; cursor:pointer;" src="Images/HITLogo.png">
+                </a>
+                <div style="display: flex; flex-direction: column; justify-content: center; padding-right: 4vw;">
+                    <p style="font-weight: 600;">צוות הפרויקט:</p>
+                    <p>גל אוקסנברג ונופר מאיר</p>
+                    <p style="font-weight:600;">מנחים:</p>
+                    <p>עומרית אבנשטיין ועמרי כהנא</p>
+                </div>
+            </div>
+        </div>
+    </DialogContent>
+</MudDialog>
+
+
+
+
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    void closeAboutUs()
+    {
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+
+}

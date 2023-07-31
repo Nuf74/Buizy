@@ -1,0 +1,46 @@
+﻿@inject IJSRuntime JSRuntime
+@page "/desktop"
+
+<style>
+    .all{
+    background: #12273D;
+    font-family:Fredoka;
+    }
+    .small{
+        background-color: #EFEED8;
+    }
+
+    h1 img {
+        width: 50%;
+        margin-bottom: 20px;
+    }
+
+</style>
+
+<body class="all" cz-shortcut-listen="true">
+    <h1 class="small">
+        <img class="logo" src="Images/Newlogo.png" alt="Buizy"><div>
+            אפליקציה המעודדת תהליכי קבלת החלטות מורכבות עבור מנהלות ומנהלים בכירים בארגונים
+        </div>
+        <div style="margin-top: 15px;" >
+            האפליקציה מיועדת לשימוש במכשירי מובייל בלבד, אנא עברו למכשיר מתאים לטובת השימוש
+        </div>
+
+    </h1>
+    <footer>
+        ©                 מכון טכנולוגי חולון - HIT
+        <a target="_blank" href="http://www.hit.ac.il/telem/overview">  הפקולטה לטכנולוגיות למידה </a>
+        כל הזכויות שמורות
+
+    </footer>
+
+</body>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+    //await JSRuntime.InvokeVoidAsync("handleResize");
+      //  await JSRuntime.InvokeVoidAsync("window.addEventListener", "resize", DotNetObjectReference.Create(this), "OnWindowResize");
+    }
+
+}

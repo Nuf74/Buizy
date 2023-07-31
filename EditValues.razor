@@ -1,0 +1,432 @@
+﻿@using NufarMeir_GalOxenberg.Shared.DTOs
+@inject HttpClient Http
+@inject NavigationManager navigationManager
+@inject IDialogService DialogService
+
+<PageTitle>Edit answer effect</PageTitle>
+
+<style>
+    .Dialog{
+    flex-direction: column;
+    background-color: var(--mud-palette-surface);
+    border-radius: var(--mud-default-borderradius);
+    -webkit-animation: mud-open-dialog-center .1s cubic-bezier(.39,.575,.565,1) both;
+    animation: mud-open-dialog-center .1s cubic-bezier(.39,.575,.565,1) both;
+    box-shadow: 0 11px 15px -7px rgba(0,0,0,.2), 0 24px 38px 3px rgba(0,0,0,.14), 0 9px 46px 8px rgba(0,0,0,.12);
+  overflow: hidden;
+    width: 550px;
+    height: 460px;
+    display: flex;
+    }
+
+    .mud-dialog .mud-dialog-title {
+        padding: 0px 20px;
+        display: flex;
+    }
+
+    .scales2{
+    position: fixed;
+    border-radius: 15px 15px 15px 15px;
+    text-align: right;
+    padding-top: 0.5rem;
+    width: 37%;
+    height: fit-content;
+    display: grid;
+    background-color: #EFEED8;
+    box-shadow: 0 15px 15px 0 rgba(145, 142, 106, 1), 0 7px 7px 0 rgba(145, 142, 106, 1);
+    color: #12273D;
+        margin-right: -18rem;
+    }
+
+    .resources2 {
+    position: fixed;
+    width: 40%;
+    height: 40%;
+    border-radius: 15px 15px 15px 15px;
+    text-align: center;
+    color: white;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-evenly;
+    align-items: center;
+    padding: 0.5%;
+        background-color: #EFEED8;
+        box-shadow: 0 15px 15px 0 rgba(145, 142, 106, 1), 0 7px 7px 0 rgba(145, 142, 106, 1);
+        margin-right: 17rem;
+    }
+
+    .mud-input {
+        width: 140%;
+        margin-top: 0.5rem;
+    }
+
+        .mud-input > input.mud-input-root-outlined, div.mud-input-slot.mud-input-root-outlined {
+            padding: 11.5px 14px;
+        }
+
+        .mud-input > input.mud-input-root, div.mud-input-slot.mud-input-root {
+            font-size: 11px;
+        }
+        .mud-input-control.mud-input-number-control.mud-input-showspin .mud-input:not(.mud-input-adorned-end).mud-input-outlined input{
+                padding-inline-start: 7px
+        }
+
+
+    .mud-input-control > .mud-input-control-input-container {
+        width: fit-content;
+        margin: 0.3rem;
+    }
+
+    .mud-input.mud-input-outlined {
+        position: inherit;
+        width: auto;
+    }
+
+    .mud-input-control {
+        margin-left:0px;
+    }
+</style>
+
+<MudDialog Class="Dialog" Style="width:665px; height:550px;">
+          
+     <TitleContent>
+             <MudIconButton Style="margin-right:0.5rem;" OnClick="BackToBoard" Icon="@Icons.Material.Filled.NavigateNext" Color="Color.Info">
+        <p>חזרה ללוח</p>
+     </MudIconButton>
+
+
+     </TitleContent>
+
+     <DialogContent>
+            
+
+
+                     @if (isMultiplateClick)
+            {
+            <div style="text-align: center;
+            display: grid;
+            font-family: Fredoka;
+            font-size: 14px;
+            width: -webkit-fill-available;
+            color: white;
+             margin-bottom: 1vh;
+             background: #12273D;
+             border: 0px solid;
+             border-radius: 2rem;">
+                <p style="direction:rtl;">הגדירו מה תהיה ההשפעה במידה ויבחר:</p>
+                    <p>
+                    @answer.Distractor
+                    </p>
+                        </div>              
+            }
+
+              @if (isSliderClick)
+            {
+            <div style="text-align: center;
+            display: grid;
+            background-color: #EFEED8;
+            font-family: Fredoka; 
+            font-size: 14px;
+            text-align: center;
+            color: rgb(18, 39, 61);
+            width: -webkit-fill-available;">
+            <div style="color: white;
+            margin-bottom: 1vh;
+            background: #12273D;
+            border: 0px solid;
+            border-radius: 2rem;">
+                        <p style="direction:rtl;">הגדירו מה תהיה ההשפעה במידה ויבחר:</p>
+                        <div style="display: inline-flex;">
+                    <p style="padding-left: 3px;">@answer.Min </p>
+                    <p> עד- @answer.Max </p>
+                    </div>
+                    </div>
+                </div>                
+            }
+
+     <p style="display: flex;
+    font-size: 14px;
+    justify-content: center;
+    margin-bottom: 4vh;">זכרו שהמספר צפוי להתווסף או להחסיר מהערך הקיים של המדד/ המשאב (לדוגמה: 10-, 5) </p>
+
+       <div style="display:flex; justify-content:space-evenly">
+        <div class="scales2 px-2" style="height:48vh;">
+            <p style="color:#12273D; font-size: 1rem; font-weight:450;position: relative;text-align: center;">מדדים</p>
+            @foreach (Scales s in scalesList)
+            {               
+                var scaleAnswer = scalesAnswersList.FirstOrDefault(sa => sa.scaleId == s.Id);
+                if (scaleAnswer != null)
+                {
+                <div style="display: inline-flex;justify-content: space-between;width: 90%;margin-right: 0.65vw;">
+                   <p style="font-size:13px; margin-left:1vw;line-break: anywhere;">@s.ScaleName</p>
+                    @*<div class="progress my-1" style="height:1rem; border-color:#12273D;">*@
+                        <div>
+@*                <MudNumericField id="NUMwidth" @bind-Value="scaleAnswer.changedValue" Style="width:13rem;" Variant="Variant.Outlined" AutoFocus="true" @onfocus="() => updateChangedScale(s.Id, scaleAnswer.changedValue)" />
+*@
+                        <input id="NUMwidth" type="number"
+                        value="@scaleAnswer.changedValue"
+                        style="width: 5rem;direction: ltr;
+                        border: 1px solid;
+                        border-radius: 3px;
+                        background: #EFEED8;
+                        text-align: center;"
+                        @oninput="(ChangeEventArgs args) =>
+                        {
+                            if (int.TryParse(args.Value.ToString(), out int result))
+                            {
+                                scaleAnswer.changedValue = result;
+                                updateChangedScale(s.Id, scaleAnswer.changedValue);
+                            }
+                        }" />
+
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+        
+
+
+        <div class="resources2">
+            <p style="color:#12273D; font-size: 1rem; font-weight: 450; position: absolute; margin-top: -12rem;">משאבים</p>         
+           
+            @foreach (Resource r in resourcesList)
+            {
+                var resourceAnswer = resourcesAnswersList.FirstOrDefault(ra => ra.resourceId == r.Id);
+                if (resourceAnswer != null)
+                {
+                    <div class="oneresource" style="height:75%; margin-top:2rem; display: inline-table; margin-left:auto; margin-right:auto;">
+                            <div style="transform: translate(0%, 50%);">
+                        <p style="color:rgb(18, 39, 61); font-size:12px; padding-top:0.3rem;line-break: auto; height:30%; position: relative;">
+@*                            <MudNumericField Style="display: flex; width: 90%;margin-right: auto; margin-left:auto" @bind-Value="resourceAnswer.changedQuantity" Variant="Variant.Outlined" AutoFocus="true" @onfocus="() => updateChangedResource(r.Id, resourceAnswer.changedQuantity)" />
+*@
+                        <input id="NUMwidth" type="number"
+                        value="@resourceAnswer.changedQuantity"
+                        style="display: flex; width: 90%;margin-right: auto; margin-left:auto; direction: ltr;
+                        border: 1px solid;
+                        border-radius: 3px;
+                        background: #EFEED8;
+                        text-align: center;"
+                         @oninput="(ChangeEventArgs args) =>
+                        {
+                            if (int.TryParse(args.Value.ToString(), out int result))
+                            {
+                                resourceAnswer.changedQuantity = result;
+                                updateChangedResource(r.Id, resourceAnswer.changedQuantity);
+                            }
+                        }" />
+
+                       <br> @r.Type
+                    </p>
+                    </div>
+                </div>
+                }
+            }
+        </div>
+        </div>
+
+       <MudButton style="font-family:Fredoka; right: 25rem;top: 16rem;" Color="Color.Secondary" Variant="Variant.Filled" OnClick="Ready">שליחה</MudButton>
+        </DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [Parameter]
+    public GameClass SavedGame { get; set; }
+    [Parameter]
+    public Answer answer { get; set; }
+    [Parameter]
+    public bool isMultiplateClick { get; set; }
+    [Parameter]
+    public bool isSliderClick { get; set; }
+    [Parameter]
+    public bool isClicked { get; set; }
+    public List<Resource> resourcesList = new List<Resource>();
+    public List<Scales> scalesList = new List<Scales>();
+    public List<ScalesToChange> scalesAnswersList = new List<ScalesToChange>();
+    public List<ResourcesToChange> resourcesAnswersList = new List<ResourcesToChange>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var getResponse6 = await Http.GetAsync("api/Game/resourceIdByGameId/" + SavedGame.Id);
+        if (getResponse6.IsSuccessStatusCode == true)
+        {
+            var resourceIdFromSql = getResponse6.Content.ReadFromJsonAsync<List<int>>().Result;
+            if (resourceIdFromSql != null)
+            {
+                foreach (var resourceId in resourceIdFromSql)
+                {
+                    var getResponse7 = await Http.GetAsync("api/Game/resourcesById/" + resourceId);
+                    if (getResponse7.IsSuccessStatusCode == true)
+                    {
+                        var resourceFromSql = getResponse7.Content.ReadFromJsonAsync<Resource>().Result;
+                        resourcesList.Add(resourceFromSql);                     
+                    }
+                }
+
+                foreach (var r in resourcesList)
+                {                  
+                    ResourcesToChange existingResourceAnswer = resourcesAnswersList.FirstOrDefault(re => re.resourceId == r.Id);
+
+                    if (isClicked)
+                    {
+                        var getResponse9 = await Http.GetAsync("api/Game/getResourceAnswer/" + r.Id + "/" + answer.Id);
+
+                        if (getResponse9.IsSuccessStatusCode)
+                        {
+                            ResourcesToChange resourceAnswer = await getResponse9.Content.ReadFromJsonAsync<ResourcesToChange>();
+
+                            if (resourceAnswer != null)
+                            {
+                                existingResourceAnswer = resourceAnswer;
+                                resourcesAnswersList.Add(existingResourceAnswer);
+                            }
+                        }
+                         else
+                    {
+                        var postResponse = await Http.PostAsJsonAsync<int>("api/Game/addResourceAnswer/" + r.Id + "/" + answer.Id, r.Id);
+
+                        if (postResponse.IsSuccessStatusCode)
+                        {
+                            existingResourceAnswer = new ResourcesToChange()
+                                {
+                                    resourceId = r.Id,
+                                };
+
+                            resourcesAnswersList.Add(existingResourceAnswer);
+                        }
+                    }
+                    }
+                    else
+                    {
+                        var postResponse = await Http.PostAsJsonAsync<int>("api/Game/addResourceAnswer/" + r.Id + "/" + answer.Id, r.Id);
+
+                        if (postResponse.IsSuccessStatusCode)
+                        {
+                            existingResourceAnswer = new ResourcesToChange()
+                                {
+                                    resourceId = r.Id,
+                                };
+
+                            resourcesAnswersList.Add(existingResourceAnswer);
+                        }
+                    }
+                }
+            }
+        }
+
+        var getResponse2 = await Http.GetAsync("api/Game/scaleIdByGameId/" + SavedGame.Id);
+        if (getResponse2.IsSuccessStatusCode == true)
+        {
+            var scalesIdFromSql = getResponse2.Content.ReadFromJsonAsync<List<int>>().Result;
+            if (scalesIdFromSql != null)
+            {
+                foreach (var ScaleId in scalesIdFromSql)
+                {
+                    var getResponse5 = await Http.GetAsync("api/Game/scalesById/" + ScaleId);
+                    if (getResponse5.IsSuccessStatusCode == true)
+                    {
+                        var scaleFromSql = getResponse5.Content.ReadFromJsonAsync<Scales>().Result;
+                        scalesList.Add(scaleFromSql);
+                    }
+                }
+
+                foreach (var s in scalesList)
+                {
+                    ScalesToChange existingScaleAnswer = scalesAnswersList.FirstOrDefault(sa => sa.scaleId == s.Id);
+                    if (isClicked)
+                    {
+                        var getResponse8 = await Http.GetAsync("api/Game/getScaleAnswer/" + s.Id + "/" + answer.Id);
+
+                        if (getResponse8.IsSuccessStatusCode)
+                        {
+                            ScalesToChange scaleAnswer = await getResponse8.Content.ReadFromJsonAsync<ScalesToChange>();
+
+                            if (scaleAnswer != null)
+                            {
+                                existingScaleAnswer = scaleAnswer;
+                                scalesAnswersList.Add(existingScaleAnswer);
+                            }
+                        }
+                        else
+                        {
+                            var postResponse = await Http.PostAsJsonAsync<int>("api/Game/addScaleAnswer/" + s.Id + "/" + answer.Id, s.Id);
+
+                            if (postResponse.IsSuccessStatusCode)
+                            {
+                                ScalesToChange newScaleAnswer = new ScalesToChange()
+                                    {
+                                        scaleId = s.Id,
+                                    };
+
+                                scalesAnswersList.Add(newScaleAnswer);
+                            }
+                        }                   
+                    }
+                    else
+                    {
+                        var postResponse = await Http.PostAsJsonAsync<int>("api/Game/addScaleAnswer/" + s.Id + "/" + answer.Id, s.Id);
+
+                        if (postResponse.IsSuccessStatusCode)
+                        {
+                            ScalesToChange newScaleAnswer = new ScalesToChange()
+                                {
+                                    scaleId = s.Id,
+                                };
+
+                                scalesAnswersList.Add(newScaleAnswer);
+                            }
+                        }                       
+                    }
+            }
+        }
+    }
+
+
+    private async Task BackToBoard()
+    {
+        //var parameters = new DialogParameters();
+        //parameters.Add("ContentText", "התהליך לא הושלם, לשמירת ההשפעות יש ללחוץ שליחה");
+        //parameters.Add("ButtonText", "מחיקה ואישור");
+        //parameters.Add("Color", Color.Secondary);
+
+        //var options = new DialogOptions() { CloseButton = false, MaxWidth = MaxWidth.ExtraSmall };
+        //var dialog = DialogService.Show<BackToBoard>("", parameters, options);
+        //var result = await dialog.Result;
+
+        //if (!result.Cancelled)
+        //{
+        //    var DeleteResponse2 = await Http.DeleteAsync("api/Game/DeleteScalesAnswers/" + answer.Id);
+        //    var DeleteResponse3 = await Http.DeleteAsync("api/Game/DeleteResourcesAnswers/" + answer.Id);
+        //    StateHasChanged();
+
+            MudDialog.Close(DialogResult.Ok(false));
+        //}
+    }
+     
+    private async Task updateChangedScale(int scaleId, int changedValue) 
+    {
+        var getResponse4 = await Http.GetAsync("api/Game/updateChangedValue/" + answer.Id + "/" + changedValue + "/" + scaleId);
+        if (getResponse4.IsSuccessStatusCode == true)
+        {
+            //TODO: ADD A CHECK TO THE STAGE
+        }
+    }
+
+    private async Task updateChangedResource(int resourceId, int changedQuantity)
+    {
+        var getResponse4 = await Http.GetAsync("api/Game/updateChangedQuantity/" + resourceId + "/" + changedQuantity + "/" + answer.Id);
+        if (getResponse4.IsSuccessStatusCode == true)
+        {
+            //TODO: ADD A CHECK TO THE STAGE
+        }
+    }
+
+    private void Ready()
+    {
+     //TODO: IF ONFOCUS STILL STUPID UPDATE HERE
+
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+   
+}

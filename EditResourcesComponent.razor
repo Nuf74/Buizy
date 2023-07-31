@@ -1,0 +1,387 @@
+﻿@using NufarMeir_GalOxenberg.Client.Pages
+@using NufarMeir_GalOxenberg.Shared.DTOs
+@inject HttpClient Http
+@inject NavigationManager navigationManager
+@inject IDialogService DialogService
+@using MudBlazor
+
+<PageTitle>Edit resources</PageTitle>
+
+<style>
+
+    :root {
+        --mud-palette-surface: #EFEED8;
+        --mud-palette-primary: #12273D;
+        --mud-palette-secondary-darken: #1C3D59;
+        --mud-palette-primary-lighten: #1C3D59;
+        --mud-palette-text-disabled: lightslategray;
+    }
+
+    .dropzone-full-color {
+        background-color: rgba(168,211,140,0.6)
+    }
+
+   .mud-input > input.mud-input-root, div.mud-input-slot.mud-input-root{
+        height: 0.3rem;
+   }
+   .mud-button-filled.mud-button-filled-secondary {
+    color: var(--mud-palette-secondary-text);
+    background-color: #12273D;
+}
+
+    .mud-background-gray {
+        background-color: rgba(213, 211, 150, 0.21) !important;
+    }
+
+</style>
+
+<EditForm Model="NewResource" OnValidSubmit="Ready" Style="background-color: #EFEED8; display: flex; justify-content: center;">
+    <MudIconButton Style="margin-right:0.5rem;" OnClick="BackToBoard" Icon="@Icons.Material.Filled.NavigateNext" Color="Color.Info">
+        <p>חזרה ללוח</p>
+    </MudIconButton>
+    <MudTabs @ref="tabs" Style="font-family:Fredoka;padding-left: 2rem; padding-right: 2rem;font-size:16px;" Elevation="1" Centered="true" Color="@Color.Primary">
+
+        <MudTabPanel Text="1. בחירת המשאבים"> 
+            <MudText Style="font-family:Fredoka;padding-top: 2rem;font-size:15px;">
+                המשאבים ישרתו את השחקנים לאורך המשחק כולו
+                <br />
+                <p>
+                    מידת השינוי של כל משאב תיקבע ביצירת או עריכת סבב קבלת החלטות
+                </p>
+                <br />
+                <p>
+                    יש לבחור 3 משאבים על ידי גרירתם מבנק המשאבים לעמודת הבחירות שלי
+                </p>
+            </MudText>
+            <MudDropContainer T="DropItem" Items="_items" ItemsSelector="@((item, dropzone) => item.Identifier == dropzone)" ItemDropped="ItemUpdated" Class="d-flex flex-wrap flex-grow-1">
+                <ChildContent>
+                    <div class="d-flex flex-wrap">
+                        <MudDropZone T="DropItem" Identifier="Drop Zone 1" Class="rounded mud-background-gray pa-6 ma-8 flex-grow-1" Style="width: 22rem; height:24rem; display: flex; flex-wrap: wrap; justify-content: space-between; background-color: rgba(213, 211, 150, 0.21)!important;">
+                            <MudText Typo="Typo.h6" Class="mb-4" Style="font-family: Fredoka; font-size: 17px; width:9rem;">בנק משאבים</MudText>
+                        </MudDropZone>
+                        <MudDropZone T="DropItem" Identifier="Drop Zone 2" Style=" width:12rem; height:24rem;" Class="@GetDropZone2ColorClass()">
+                            <MudText Typo="Typo.h6" Class="mb-4" Style="font-family: Fredoka; font-size: 17px;">הבחירות שלי</MudText>
+                        </MudDropZone>
+                    </div>
+                </ChildContent>
+                <ItemRenderer Context="item">
+                     @if(item.Name == "אחר")
+                    {   <MudTooltip Text="במסך הבא ניתן יהיה לקבוע את שם המשאב" Arrow="true" Placement="Placement.Bottom" Color="Color.Info">
+                            <MudPaper Style="font-family: Fredoka; font-size: 14px; width:9rem;" Elevation="25" Class="pa-3 my-4">@item.Name</MudPaper>
+                        </MudTooltip>
+                    } else {
+                    <MudPaper Style="font-family: Fredoka; font-size: 14px; width:9rem;" Elevation="25" Class="pa-3 my-4">@item.Name</MudPaper>
+                    }
+                </ItemRenderer>
+            </MudDropContainer>
+            <MudIconButton Disabled=@ItemsDisabled Style="transform: rotate(180deg); right: 93%;" OnClick="() => Activate(1)" Icon="@Icons.Material.Filled.NavigateNext" Color="Color.Info" />
+        </MudTabPanel>
+
+        <MudTabPanel OnClick="stage1Completed" Disabled=@ItemsDisabled Text="2. קביעת ערך התחלתי">
+            <MudText Style="font-family:Fredoka;padding-top: 2rem;font-size:15px;">
+                יש להגדיר לכל משאב את ערכו ההתחלתי במשחק:
+                <p>
+                    במידה ובחרתם במשאב "אחר" קבעו את שמו כך שיתאים לקבלת ערך מספרי (בין 2 ל-20 תווים)
+                </p>
+                </MudText>
+                <br />
+            @foreach (var item in _items.Where(i => i.Identifier == "Drop Zone 2"))
+            {
+                nameValue = item.Name;
+                <div style="display: -webkit-box; font-family:Fredoka;font-size: 15px;">
+                    <div style="position:relative;">
+                    <input id="NUMwidth" type="number"
+                    value="@item.NumericValue"
+                    style="display: flex; width: 35vh;height:6vh;
+                    margin-top: 1vh; margin-right: auto; margin-left:auto; direction: ltr;
+                      border: 1px solid;
+                      border-radius: 3px;
+                      background: #EFEED8;
+                      text-align: right;
+                    padding-right:1vh;"
+                           @oninput="(ChangeEventArgs args) =>
+                {
+                    if (int.TryParse(args.Value.ToString(), out int result))
+                    {
+                        item.NumericValue = result;
+                    }
+                }" />
+                        <label style="position: absolute;right: 5.5rem; top: 60%; transform: translateY(-50%); font-family: Fredoka;padding-left: 2vh;line-break: anywhere;">
+                            @if (nameValue == "אחר")
+                            {
+                                <input type="text" @bind="@item.Name" @onkeyup="() => nameCheck(item)" style="width: 90%; text-align: right; background-color:#F7F6F0;" Variant="Variant.Outlined" @oninput="(ChangeEventArgs args) =>
+                {
+                    if (int.TryParse(args.Value.ToString(), out int result))
+                    {
+                       nameCheck(item);
+                    }
+                }" />
+                                <p style="color: red; font-size:small; position: fixed; margin-right: 15rem; margin-top: -1.2rem;">@item.Msg</p>
+                            }
+                            else
+                            {
+                                @item.Name
+                            }
+                        </label>
+                    </div>
+                </div>
+            }
+            <MudButton style="font-family:Fredoka;margin-bottom: 2rem;margin-top: 1rem;right: 85%;" Color="Color.Secondary" Variant="Variant.Filled" OnClick="Ready">שמירה</MudButton>
+        </MudTabPanel>
+
+ 
+
+    </MudTabs>
+
+</EditForm>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [Parameter]
+    public GameClass SavedGame { get; set; }
+    [Parameter]
+    public Action<GameClass> GameUpdatedCallback { get; set; }
+    [Inject]
+    public IJSRuntime JSRuntime { get; set; }
+    Resource NewResource = new Resource();
+    public bool isReady = false;
+    private DropItem? _draggedItem;
+    private List<DropItem> _items;
+    MudTabs tabs;
+    public bool ItemsDisabled = true;
+    public string nameValue = "";
+    public bool isWithData = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _items = new List<DropItem>()
+    {
+        new DropItem(){ Name = "שקלים חדשים", Identifier = "Drop Zone 1" },
+        new DropItem(){ Name = "עובדים", Identifier = "Drop Zone 1" },
+        new DropItem(){ Name = "לקוחות", Identifier = "Drop Zone 1" },
+        new DropItem(){ Name = "מלאי", Identifier = "Drop Zone 1" },
+        new DropItem(){ Name = "אחר", Identifier = "Drop Zone 1" },
+        new DropItem(){ Name = "אחר", Identifier = "Drop Zone 1" },
+        new DropItem(){ Name = "אחר", Identifier = "Drop Zone 1" }
+    };
+
+        await GetResourcesFromDB();
+    }
+
+    public async Task GetResourcesFromDB()
+    {
+        ItemsDisabled = true;
+        isWithData = true;
+        var getResponse = await Http.GetAsync("api/Game/getResourcesById/" + SavedGame.Id);
+        if (getResponse.IsSuccessStatusCode)
+        {
+            List<Resource> resourcesToShow = await getResponse.Content.ReadFromJsonAsync<List<Resource>>();
+
+            if (resourcesToShow != null)
+            {
+                // Remove the existing items with the same resource type from "Drop Zone 1"
+                foreach (var resource in resourcesToShow)
+                {
+                    var itemToRemove = _items.FirstOrDefault(item => item.Name == resource.Type && item.Identifier == "Drop Zone 1");
+                    if (itemToRemove != null)
+                    {
+                        _items.Remove(itemToRemove);
+                    }
+
+                    // _items.RemoveAll(item => item.Identifier == "Drop Zone 2");
+
+                    if (!string.IsNullOrEmpty(resource.Type))
+                    {
+                        _items.Add(new DropItem()
+                            {
+                                Name = resource.Type,
+                                Identifier = "Drop Zone 2",
+                                NumericValue = resource.Quantity
+                            });
+                    }
+                }
+                if (_items.Count(item => item.Identifier == "Drop Zone 2") == 3)
+                {
+                    ItemsDisabled = false;
+                } else 
+                {
+                    isReady = false;
+                    await JSRuntime.InvokeVoidAsync("sessionStorage.setItem", "isReady", isReady.ToString());
+                }
+                GetDropZone2ColorClass();              
+            }
+        }
+    }
+
+    void nameCheck(DropItem item){       
+        
+        if (item.Name.Length <= 1 || item.Name.Length > 20)
+        {
+            item.Msg = "יש להזין משאב המכיל בין 2 ל-20 תווים";
+        } else{
+            item.Msg = "";
+        }
+        StateHasChanged();
+    }
+
+    void Activate(int index)
+    {
+        tabs.ActivatePanel(index);
+    }
+
+    private string GetDropZone2ColorClass()
+    {
+        if (_items.Count(item => item.Identifier == "Drop Zone 2") == 3)
+        {            
+            return "rounded pa-6 ma-8 flex-grow-1 dropzone-full-color";          
+        }
+        else
+        {
+            return "rounded mud-background-gray pa-6 ma-8 flex-grow-1";
+        }
+    }
+
+    private void ItemUpdated(MudItemDropInfo<DropItem> dropItem)
+    {
+        if (dropItem.Item != null && dropItem.DropzoneIdentifier != null)
+        {
+            dropItem.Item.Identifier = dropItem.DropzoneIdentifier;
+        }
+        else if (dropItem.Item != null && dropItem.DropzoneIdentifier == null)
+        {
+            dropItem.Item.Identifier = "";
+        }
+        if (_items.Count(item => item.Identifier == "Drop Zone 2") == 3)
+        {
+            ItemsDisabled = false;
+            stage1Completed();
+        }
+        else if (_items.Count(item => item.Identifier == "Drop Zone 2") <= 2)
+        {
+            ItemsDisabled = true;
+            GetDropZone2ColorClass();
+        }
+
+        if (_items.Count(item => item.Identifier == "Drop Zone 2") > 3)
+        {
+            // Set the dropzone identifier back to the previous value
+            dropItem.Item.Identifier = "Drop Zone 1";
+        }
+    }
+
+
+    private async Task BackToBoard()
+    {
+        string isReadyString = await JSRuntime.InvokeAsync<string>("sessionStorage.getItem", "isReady");
+        bool isReady = !string.IsNullOrEmpty(isReadyString) && bool.Parse(isReadyString);
+
+        if (isWithData == true && _items.Count(item => item.Identifier == "Drop Zone 2") == 3 && isReady)
+        {
+            navigationManager.NavigateTo($"EditorBoard/" + SavedGame.Id);
+        }
+        if (isReady == false || _items.Count(item => item.Identifier == "Drop Zone 2") < 3)
+        {
+            var parameters = new DialogParameters();
+            parameters.Add("ContentText", "חזרה ללוח תתאפשר רק לאחר השלמת שני השלבים ולחיצה על שמירה");
+            parameters.Add("ButtonText", "אישור");
+            parameters.Add("Color", Color.Secondary);
+
+            var options = new DialogOptions() { CloseButton = false, MaxWidth = MaxWidth.ExtraSmall, NoHeader = true };
+            var dialog = DialogService.Show<BackToBoard2>("", parameters, options);
+            var result = await dialog.Result;
+        }
+        else
+        {
+            GameUpdatedCallback?.Invoke(SavedGame);
+            navigationManager.NavigateTo($"EditorBoard/" + SavedGame.Id);
+        }
+    }
+
+    private async Task stage1Completed()
+    {
+        //check if the resources exist for that game, if not so add them
+        var getResponse = await Http.GetAsync("api/Game/getResourcesById/" + SavedGame.Id);
+        if (getResponse.IsSuccessStatusCode)
+        {
+            List<Resource> resourcesToShow = await getResponse.Content.ReadFromJsonAsync<List<Resource>>();
+
+            if (resourcesToShow.Count >= 3)
+            {
+                var dropZoneItems = _items.Where(i => i.Identifier == "Drop Zone 2").ToList();
+
+                for (int i = 0; i < 3; i++)
+                {
+                    var item = dropZoneItems.ElementAtOrDefault(i);
+                    var resource = resourcesToShow.ElementAtOrDefault(i);
+
+                    if (item != null && resource != null)
+                    {
+                        if (item.Name.Length >= 2 && item.Name.Length <= 20)
+                        {
+                            var getResponse4 = await Http.GetAsync("api/Game/updateResource/" + resource.Id + "/" + item.Name + "/" + item.NumericValue);
+                            if (getResponse4.IsSuccessStatusCode)
+                            {
+                                // TODO: ADD A CHECK TO THE STAGE
+                            }
+                        }
+                    }
+                }
+            }      
+            else
+            {
+                foreach (var item in _items.Where(i => i.Identifier == "Drop Zone 2"))
+                {                   
+                    var postResponse = await Http.PostAsJsonAsync<int>("api/Game/addResource/" + SavedGame.Id, SavedGame.Id);
+                }
+            }
+        }
+    }
+
+
+
+    private async Task Ready()
+    {
+        isReady = true;
+        await JSRuntime.InvokeVoidAsync("sessionStorage.setItem", "isReady", isReady.ToString());
+
+        var getResponse = await Http.GetAsync("api/Game/getResourcesById/" + SavedGame.Id);
+        if (getResponse.IsSuccessStatusCode)
+        {
+            List<Resource> resourcesToShow = await getResponse.Content.ReadFromJsonAsync<List<Resource>>();
+
+            if (resourcesToShow.Count >= 3)
+            {
+                var dropZoneItems = _items.Where(i => i.Identifier == "Drop Zone 2").ToList();
+
+                for (int i = 0; i < 3; i++)
+                {
+                    var item = dropZoneItems.ElementAtOrDefault(i);
+                    var resource = resourcesToShow.ElementAtOrDefault(i);
+
+                    if (item != null && resource != null)
+                    {
+                        if (item.Name.Length >= 2 && item.Name.Length <= 20)
+                        {
+                            var getResponse4 = await Http.GetAsync("api/Game/updateResource/" + resource.Id + "/" + item.Name + "/" + item.NumericValue);
+                            if (getResponse4.IsSuccessStatusCode)
+                            {
+                                // TODO: ADD A CHECK TO THE STAGE
+                            }
+                        }
+                    }
+                  }
+                }
+            GameUpdatedCallback?.Invoke(SavedGame);
+            navigationManager.NavigateTo($"EditorBoard/" + SavedGame.Id);
+            }
+        }
+
+
+    public class DropItem
+    {
+        public string Name { get; set; } = "";
+        public string Identifier { get; set; } = "";
+        public int NumericValue { get; set; }
+        public string Msg { get; set; } = "";
+    }
+}

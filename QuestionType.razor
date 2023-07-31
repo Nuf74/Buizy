@@ -1,0 +1,130 @@
+﻿@using NufarMeir_GalOxenberg.Shared.DTOs
+@inject HttpClient Http
+@inject IDialogService DialogService
+@inject NavigationManager navigationManager
+
+<PageTitle>Question Type</PageTitle>
+
+<style>
+
+
+    .DialogActions {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .mud-dialog .mud-dialog-actions {
+        display: inline-flex;
+        justify-content: space-evenly;
+        padding-bottom: 1.5rem;
+        scale:90%;
+    }
+
+    .mud-dialog-actions {
+        padding-bottom: 16px;
+    }
+
+    .p {
+        font-size:medium;
+    }
+</style>
+
+<MudDialog Style="margin-right: 5rem; box-shadow: 0 10px 10px 0 rgba(9, 20, 30, 0.5), 0 4px 4px 0 rgba(9, 20, 30, 0.5); top: 0; height: 15rem; justify-content: center; display: flex; height:18rem; color:#12273D; font-size:16px;">
+    <DialogContent> <p style="font-size:16px;">@Title</p> </DialogContent>
+    <DialogActions>
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; cursor: pointer; margin-left: 5rem;">
+            <MudImage Src="images/ColoredLibra.png" @onclick="() => typeChoice(1)" Style="max-width: 100%; max-height: 100%;"></MudImage>
+            <br />
+            <p style="color:#12273D; font-size:16px;">קבלת החלטה</p>
+        </div>
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; cursor: pointer; @isDisable">
+            <MudImage Src="images/surprise.png" @onclick="() => typeChoice(2)" Style="max-width: 100%; max-height: 100%;"></MudImage>
+            <br />
+            <p style="color:#12273D;font-size:16px;">הפתעה</p>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [Parameter]
+    public GameClass SavedGame { get; set; }
+    [Parameter]
+    public Action<Question, int> QuesUpdatedCallback { get; set; }
+    [Parameter]
+    public Action<UnexpectedElement, int> UnExUpdatedCallback { get; set; }
+    [Parameter]
+    public int index { get; set; }
+    [Parameter]
+    public bool isEnoughQuestions { get; set; }
+    public string isDisable = "";
+    public string Title = "דבר ראשון, יש לבחור את סוג השאלה שברצונך להזין";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (isEnoughQuestions){
+            isDisable = "filter: grayscale(0%);";
+            Title = "דבר ראשון, יש לבחור את סוג השאלה שברצונך להזין";
+        }
+        else if (isEnoughQuestions == false){
+            isDisable = "filter: grayscale(100%); opacity:20%;";
+            Title = "אוי יש יותר מדי הפתעות במשחק! בחרו קבלת החלטה";
+        }
+    }
+
+    public async Task typeChoice(int choice)
+    {   
+        //Decision round
+        if (choice == 1)
+        {
+            var postResponse = await Http.PostAsJsonAsync<int>("api/Game/addDecisionRound/" + SavedGame.Id + "/" + index, SavedGame.Id);
+
+            var getResponse9 = await Http.GetAsync("api/Game/getLastAddedQuestion/" + SavedGame.Id);
+            if (getResponse9.IsSuccessStatusCode == true)
+            {
+                Question LastAddedQuestion = await getResponse9.Content.ReadFromJsonAsync<Question>();
+
+                var parameters = new DialogParameters();
+                parameters.Add("LastAddedQuestion", LastAddedQuestion);
+                parameters.Add("SavedGame", SavedGame);
+                var options = new DialogOptions() { MaxWidth = MaxWidth.ExtraLarge, CloseOnEscapeKey = false, CloseButton = false, DisableBackdropClick = true };
+                var dialog = DialogService.Show<EditDecisionRound>("", parameters, options);
+
+                var result = await dialog.Result;
+                if (!result.Cancelled)
+                {
+                    QuesUpdatedCallback?.Invoke(LastAddedQuestion,index);
+                    MudDialog.Close(DialogResult.Ok(true));
+                }
+            }
+
+        }
+        //Unexpected element
+        if (choice == 2)
+        {
+            var postResponse = await Http.PostAsJsonAsync<int>("api/Game/addUnexpected/" + SavedGame.Id + "/" + index, SavedGame.Id);
+
+            var getResponse = await Http.GetAsync("api/Game/getLastAddedUnexpected/" + SavedGame.Id);
+                if (getResponse.IsSuccessStatusCode == true)
+                {
+                UnexpectedElement LastAddedUnexpected = await getResponse.Content.ReadFromJsonAsync<UnexpectedElement>();
+
+                var parameters = new DialogParameters();
+                parameters.Add("LastAddedUnexpected", LastAddedUnexpected);
+                parameters.Add("SavedGame", SavedGame);
+                var options = new DialogOptions() { MaxWidth = MaxWidth.ExtraLarge, CloseOnEscapeKey = false, CloseButton = false, DisableBackdropClick = true };
+                var dialog = DialogService.Show<EditUnexpected>("", parameters, options);
+
+                var result = await dialog.Result;
+                    if (!result.Cancelled)
+                    {
+                        UnExUpdatedCallback?.Invoke(LastAddedUnexpected, index);
+                        MudDialog.Close(DialogResult.Ok(true));
+                    }
+                }
+        }
+    }
+}

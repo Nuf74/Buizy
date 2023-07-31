@@ -1,0 +1,88 @@
+﻿@using NufarMeir_GalOxenberg.Client.Pages
+@using NufarMeir_GalOxenberg.Shared.DTOs
+@inject HttpClient Http
+@inject NavigationManager navigationManager
+<PageTitle>Get a link</PageTitle>
+
+<style>
+    .mud-dialog-title {
+        background: #EFEED8;
+        position: sticky;
+        top: 0;
+    }
+
+    .mud-tooltip-root.mud-tooltip-inline {
+        display: table-cell;
+    }
+
+    :root {
+        --mud-Info: #12273D;
+        --mud-palette-info-darken: #1C3D59;
+    }
+
+    .mud-info-text {
+        --mud-Info: #12273D;
+    }
+
+    .--mud-palette-info {
+        --mud-Info: #12273D;
+    }
+    
+
+    .mud-icon-root.mud-svg-icon {
+        color: #12273D;
+    }
+
+    .mud-icon-button {
+        flex: 0 0 auto;
+        padding: 5px;
+        }
+
+
+    .mud-dialog .mud-dialog-content {
+        padding: 32px 40px;
+       }
+
+       .mud-dialog .mud-dialog-actions {
+    padding: 8px;
+    justify-content: unset;
+       }
+</style>
+
+
+<MudAlert id="callAlert" Severity="Severity.Success" ContentAlignment="HorizontalAlignment.Center" style="display: none;font-family:Fredoka;">
+    הלינק הועתק בהצלחה!
+</MudAlert>
+
+<MudDialog Style="background-color:#EFEED8; margin-right:5rem; box-shadow: 0 10px 10px 0 rgba(9, 20, 30, 0.5), 0 4px 4px 0 rgba(9, 20, 30, 0.5); top:0; height:min-content;">
+    <DialogContent>       
+        <MudText style="font-family:Fredoka; color: #12273D; text-align:center;">
+            איזה כיף!<br /> לחצו על הלינק להעתקת הקישור למשחק:
+        </MudText>
+
+
+        <div style="display: flex; flex-direction: column; align-items: center;">
+            <a style="background-color:transparent;" Variant="Variant.Filled" href="#" onclick="copyLink(@SavedGame.Id)">
+                <MudIconButton Icon="@Icons.Material.Filled.Link" Color="Color.Info" Size="Size.Large"/>
+            </a>
+            <MudText style="font-family:Fredoka;border-radius:20px; color: white; display: flex; justify-content: center;font-weight:400;background-color: darkcyan;padding: 0.5rem;">שימו לב! קוד המשחק הוא @SavedGame.Id</MudText>
+        </div>      
+    </DialogContent>
+    <DialogActions>
+        <MudIconButton OnClick="backToBoard" Icon="@Icons.Material.Filled.NavigateNext" Color="Color.Info" />
+        <p>חזרה לטבלת המשחקים שלי</p>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public GameClass SavedGame { get; set; }
+
+
+    public void backToBoard()
+    {
+        navigationManager.NavigateTo("EditorGames");
+    }
+}

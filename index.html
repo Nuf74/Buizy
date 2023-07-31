@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+
+    <!-- possible content values: default, black or black-translucent -->
+    <meta name="apple-mobile-web-app-status-bar-style"
+          content="black-translucent">
+
+    <title>Buizy</title>
+    <base href="/" />
+  <!--  <base href="/2023/Buizy_NufarGal/" />-->
+
+    <!--CSS-->
+    <link href="css/bootstrap/bootstrap.min.css" rel="stylesheet" />
+    <link href="css/app.css" rel="stylesheet" />
+    <link href="manifest.json" rel="manifest" />
+    <!--<link id="manifestLink" rel="manifest" />-->
+    <link rel="apple-touch-icon" sizes="512x512" href="Newlogo.png" />
+    <link href="NufarMeir_GalOxenberg.Client.styles.css" rel="stylesheet" />
+    <link rel="icon" href="images/linkLogo.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!--<link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />-->
+    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+
+    <!--JS-->
+    <script src="JScripts/bootstrap.bundle.js"></script>
+    <script src="JScripts/JavaScript.js"></script>
+    <!--<script>
+        const pathSegments = window.location.pathname.split('/');
+        const gameId = pathSegments[1];
+
+        fetch('manifest.json')
+            .then(response => response.json())
+            .then(manifest => {
+                manifest.start_url = `/${gameId}`;
+
+                const modifiedManifest = JSON.stringify(manifest);
+                const blob = new Blob([modifiedManifest], { type: 'application/json' });
+                const manifestUrl = URL.createObjectURL(blob);
+
+                const manifestLink = document.querySelector('link[rel="manifest"]');
+                manifestLink.href = manifestUrl;
+            });
+    </script>-->
+    <script>
+        function handleResize() {
+            // window.addEventListener("resize", function (e) {
+            //    const pathSegments = window.location.pathname.split('/');
+            //    const gameId = pathSegments[1]; // Assuming the gameId is the first segment in the path
+
+            //    const isMobile = /iPhone|Android/i.test(navigator.userAgent);
+            //    const isTablet = /(ipad|tablet|(android(?!.*mobile))|(windows(?!.*phone)(.*touch))|kindle|playbook|silk|(puffin(?!.*(IP|AP|WP))))/.test(navigator.userAgent);
+            //    const windowWidth = window.innerWidth;
+
+            //    //if (!isMobile && !isTablet && windowWidth > 1000) {
+            //    //    window.location.href = "https://projects.telem-hit.net/2023/Buizy_NufarGal/editorgames/1";
+            //    //} else {
+            //    //    window.location.href = "https://projects.telem-hit.net/2023/Buizy_NufarGal/" + gameId;
+            //    //}
+
+
+            //if (!isMobile || !isTablet || windowWidth > 450) {
+            //    window.location.href = "https://projects.telem-hit.net/2023/Buizy_NufarGal/editorgames/1";
+            //} else if (isMobile || isTablet || windowWidth < 449) {
+            //    window.location.href = "https://projects.telem-hit.net/2023/Buizy_NufarGal/" + gameId;
+            //}
+
+            //const n = navigator.userAgent.toLowerCase();
+            //var a = /iPhone|Android/i.test(navigator.userAgent);
+            //const t = /(ipad|tablet|(android(?!.*mobile))|(windows(?!.*phone)(.*touch))|kindle|playbook|silk|(puffin(?!.*(IP|AP|WP))))/.test(n)
+            //    , o = window.innerWidth;
+            //!a || !t || o > 1000 ? (window.location.href = "https://projects.telem-hit.net/2023/Buizy_NufarGal/editorgames/1") : (window.location.href = "https://projects.telem-hit.net/2023/Buizy_NufarGal/" + gameId);
+            /*            });*/
+
+            // window.location.href = "";
+            const pathSegments = window.location.pathname.split('/');
+            const gameId = pathSegments[1]; // Assuming the gameId is the first segment in the path
+
+            const isMobile = /iPhone|Android/i.test(navigator.userAgent);
+            const isTablet = /(ipad|tablet|(android(?!.*mobile))|(windows(?!.*phone)(.*touch))|kindle|playbook|silk|(puffin(?!.*(IP|AP|WP))))/.test(navigator.userAgent);
+            const windowWidth = window.innerWidth;
+
+            if (!isMobile && !isTablet && windowWidth > 1000) {
+                window.location.href = "./desktop";
+            } else {
+                window.location.href = "./" + gameId;
+            }
+        }
+    </script>
+    <script>
+        function startTimer(component) {
+            return setInterval(() => {
+                component.invokeMethodAsync("UpdateElapsedTime");
+            }, 1000);
+        }
+    </script>
+    <script>
+        function preventFormSubmission(event) {
+            event.preventDefault();
+        }
+    </script>
+    <script>
+        function copyLink() {
+            event.preventDefault();
+
+            var link = `https://projects.telem-hit.net/2023/Buizy_NufarGal`;
+
+            navigator.clipboard.writeText(link);
+
+            var alertElement = document.getElementById("callAlert");
+            if (alertElement) {
+                alertElement.style.display = "block";
+            }
+        }
+    </script>
+</head>
+
+<body lang="he" dir="rtl">
+    <div id="app">Loading...</div>
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+    <script src="_framework/blazor.webassembly.js"></script>
+    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+    <script>
+        function toggleVisibility(username) {
+            var detailsDiv = document.getElementById(username);
+            if (!detailsDiv) {
+                return;
+            }
+            var userDivs = document.querySelectorAll(".user-div");
+            for (var i = 0; i < userDivs.length; i++) {
+                var userDiv = userDivs[i];
+                var myDiv = userDiv.querySelector(".my-div");
+                if (userDiv.dataset.username === username) {
+                    if (myDiv.style.display === "none") {
+                        // open the clicked div
+                        myDiv.style.display = "block";
+                        userDiv.classList.add("clicked");
+                        /*                            localStorage.setItem("username", username);*/
+                    } else {
+                        // close the clicked div
+                        myDiv.style.display = "none";
+                        userDiv.classList.remove("clicked");
+                        /*                            localStorage.removeItem("username");*/
+                    }
+                } else {
+                    // close any other open divs
+                    if (myDiv.style.display !== "none") {
+                        myDiv.style.display = "none";
+                        userDiv.classList.remove("clicked");
+                    }
+                }
+            }
+        }
+    </script>
+    <script>navigator.serviceWorker.register('service-worker.js');</script>
+
+</body>
+
+</html>

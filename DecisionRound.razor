@@ -1,0 +1,349 @@
+﻿@using Microsoft.AspNetCore.SignalR.Client
+@using NufarMeir_GalOxenberg.Shared.DTOs
+@inject NavigationManager navigationManager
+@inject HttpClient Http
+@using NufarMeir_GalOxenberg.Client.Pages
+
+
+
+<style>
+    :root {
+        --mud-palette-primary: #12273D;
+    }
+
+    .mud-overlay .mud-overlay-scrim.mud-overlay-dark {
+        background-color: lightgray;
+        opacity: 20%;
+    }
+
+    .mud-dialog-title{
+        background:#EFEED8;
+        position:sticky;
+        top:0;
+    }
+
+    .mud-button-filled.mud-button-filled-secondary{
+        background-color: #EFEED8;
+        color: rgb(66,66,66);
+    }
+
+            .mud-button-filled.mud-button-filled-secondary:hover, .mud-button-filled.mud-button-filled-secondary:focus-visible {
+            background-color: #EFEED8;
+            color: rgb(66,66,66);
+        }
+
+        .mud-slider-container {
+        direction: ltr;
+        font-family: fredoka;
+        }
+
+
+ .mud-typography mud-typography-body1 mud-secondary-text {
+        color: rgb(66,66,66);
+}
+
+    :root{
+        --mud-palette-secondary: rgb(66,66,66);
+    }
+
+    .mud-typography mud-typography-body1 mud-secondary-text{
+        font-family: 'Fredoka';
+        color: rgb(66,66,66);
+    }
+
+    .mud-dialog-container {
+        display: block;
+        top: 15%;
+    }
+
+    .mud-dialog {
+    transform: translate(-50%, -50%);
+    margin-right: 18%;
+    }
+
+    .mud-overlay.mud-overlay-dialog {
+    z-index: calc(var(--mud-zindex-dialog) -1);
+}
+
+    .answer:disabled {
+        background-color: lightgray;
+        color: #fff;
+    }
+
+        .selected-answer:disabled {
+        background-color: gray;
+        color: #fff; 
+    }
+
+    .mud-warning-text {
+        color: white;
+    }
+
+    .mud-icon-root.mud-svg-icon{
+        fill:white;
+    }
+</style>
+
+<PageTitle>Decision Round</PageTitle>
+
+<MudDialog Style="box-shadow: 0 10px 10px 0 rgba(9, 20, 30, 0.5), 0 4px 4px 0 rgba(9, 20, 30, 0.5); top:0;">
+
+    <TitleContent>
+        @if (isFirstQuestionId)
+        {
+            <div style="position: absolute; top: 0; left: 20%; width: 100%; height: 100%; display: @(isFirstQuestionId ? "flex" : "none"); justify-content: center; align-items: center;">
+                    <div style="background-color: rgba(243, 12, 33, 0.6); border-radius: 10px; width: 300px; height: 40px; display: flex; position:fixed; z-index:400; justify-content: center; align-items: center;">
+                        <div style="display: flex; padding:1rem; align-items: center; text-align: center;">
+                            <div>
+                            <MudIcon Icon="@Icons.Material.Filled.Notifications" Size="Size.Small" Color="Color.Warning" />
+                            </div>
+                        <p style="font-family: Fredoka; font-size: 13px; color: white; padding:1rem;">יש לקבל החלטה בלחיצה על שליחה, זכרו שזאת תשפיע על מצבכם במשחק!</p>
+                        </div>
+                    </div>
+                </div>                  
+        } 
+        <div style="display: flex; align-items: center; justify-content: left;">
+            <div style="background-color:darkcyan; width:15%; border-radius:20px; color:white; text-align:center; margin-left:0.3rem;">
+                <MudIcon Icon="@Icons.Material.Filled.Groups2" Size="Size.Small" />
+                <span>@(GetUserAnsweredCount())/@usersCount</span>
+
+            </div>
+            <div style="background-color:darkcyan; width:15%; border-radius:20px; color:white; text-align:center; display:contents; justify-content:center; align-items:center;">
+                <TimerComponent @ref="timerRef" OnTimerExpired="@HandleTimerExpired" gameId="@gameId" />
+            </div>
+        </div>
+
+    </TitleContent>
+
+    <DialogContent>
+        <MudText>
+            <EditForm Model="curQuestion" OnValidSubmit="Submit" onclick="preventFormSubmission(event)">
+                   <p style="font-family:Fredoka; margin-bottom:0.8rem" role="status">@curQuestion.question</p>
+
+                @if (answersDistractors != null && answersDistractors.Any())
+                                    {
+                    <form>
+                        @if (curQuestion.type == 0)
+                        {
+                            @foreach (var a in answersDistractors)
+                            {
+                                <button style="font-family: Fredoka; padding: 0.25rem;" class="answer @(ansValue == a && isSent ? "selected-answer" : "")" @onclick="@(() => AnswerUser(a))" disabled=@isSent>@a.Distractor</button>
+                            }
+                        } else {
+                            <MudSlider Min="@minSlider" Max="@maxSlider" ValueLabel="true" @bind-Value="@sliderValue" Variant="Variant.Filled">
+                                <p style="font-family: 'Fredoka';padding-bottom: 0.8rem;">יש לבחור נקודה על הסקאלה להגדרת הכמות הרצויה (@sliderValue/@maxSlider)</p>
+                            </MudSlider>
+                            <div style="display: flex; justify-content: space-between; margin-top: -20px; direction: ltr; font-family:Fredoka;">
+                                <MudText Style="font-family:Fredoka;margin-top:0.3vh;" Variant="Variant.h6" Color="Color.Secondary">@(minSlider)</MudText>
+                                 <MudText Style="font-family:Fredoka;margin-top:0.3vh;" Variant="Variant.h6" Color="Color.Secondary">@(maxSlider)</MudText>
+                            </div>
+                            
+                        }   
+                    </form>
+                                    }
+                  </EditForm>
+            <div style="display:flex">
+                <p style="font-family:Fredoka; color:rgb(66,66,66);">השאלה נענתה ע"י: </p>
+            @foreach (var u in UsersAnswers)
+            {
+                <p style="background-color:#285B54; color:white; font-family:Fredoka; border-radius:5px; justify-content:center; width: fit-content;padding-left: 0.2rem; padding-right: 0.2rem; margin-right:0.3rem;"> @u </p>
+            }
+            </div>
+
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        @if (ansValue != null || curQuestion.type == 1)
+        {
+            <MudButton style="font-family:Fredoka;" Color="Color.Secondary" Variant="Variant.Filled" OnClick="@(async () => {
+                    await Submit();
+                       didIAnswer = 1;
+                       MudDialog.SetTitle("");
+                       StateHasChanged();                     
+})" Disabled=@isSent>שליחה</MudButton>
+        }
+        else
+        {
+            <MudButton style="font-family:Fredoka" Color="Color.Secondary" Variant="Variant.Filled" OnClick="Submit" Disabled>שליחה</MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    private HubConnection? hubConnection;
+    [Parameter]
+    public int questionId { get; set; }
+    [Parameter]
+    public string user { get; set; } = "";
+    [Parameter]
+    public int gameId { get; set; }
+    [Parameter]
+    public int usersCount { get; set; }
+    [Parameter]
+    public bool isFirstQuestionId { get; set; }
+    public Answer ansValue { get; set; }
+    Question curQuestion = new Question();
+    public List<Answer> answersDistractors = new List<Answer>();
+    public int didIAnswer = 0;
+    private List<string> UsersAnswers { get; set; } = new List<string>();
+    public List<string> CheckedAnswers = new List<string>();
+    public bool isSent = false;
+    private bool _isTimerExpired;
+    private int minSlider = 0;
+    private int maxSlider = 0;
+    int sliderValue = 0;
+    private TimerComponent timerRef;
+    [Parameter]
+    public int answerId { get; set; }
+    [Parameter]
+    public GameBoard ParentPage { get; set; }
+    private bool isTurnUpdated = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(navigationManager.ToAbsoluteUri("./game"))
+            .Build();
+
+        hubConnection.On<string,bool>("answer", (u, e) =>
+        {
+            AddUserAnswer(u);
+        });
+
+
+        hubConnection.On("remove_self", async () =>
+        {
+            var getResponse = await Http.DeleteAsync("api/User/");
+
+            if (getResponse.IsSuccessStatusCode != true)
+            {
+                throw new Exception("Failed to delete User");
+            }
+        });
+
+        hubConnection.On("update_question", async () =>
+        {
+            object data = new
+            {
+                hasAnswered = true,
+                questionId = (int)questionId
+            };
+            var getResponse = await Http.GetAsync("api/Game/update_question/" + true + "/" + questionId);
+            if (getResponse.IsSuccessStatusCode != true)
+            {
+                throw new Exception("Failed to update question");
+            }
+        });
+
+        hubConnection.On("return_to_game", () =>
+        {
+            timerRef.StopTimer();
+            MudDialog.Close(DialogResult.Ok(true));
+            //Task.Run(async () => await ParentPage.RefreshHex());
+            ParentPage.RefreshHex();          
+            navigationManager.NavigateTo($"GameBoard/" + user +"/"+ gameId);
+        });
+
+        //Unrelavent on this point
+        hubConnection.On<string>("value", (c) =>
+        {
+            CheckedAnswers.Add(c);
+            StateHasChanged();
+        });
+
+        await hubConnection.StartAsync();
+
+        if (isFirstQuestionId)
+        {
+            Task.Delay(7000).ContinueWith(_ =>
+            {
+                isFirstQuestionId = false;
+                MudDialog.SetTitle("");
+                Task.Delay(100).ContinueWith(_ => InvokeAsync(StateHasChanged));
+            });
+        }
+
+        var getResponse = await Http.GetAsync("api/Game/questions/" + questionId);
+        if (getResponse.IsSuccessStatusCode == true)
+        {
+            var questionToShow = getResponse.Content.ReadFromJsonAsync<Question>().Result;
+
+            if (questionToShow != null)
+            {
+                curQuestion = questionToShow;
+
+                var getResponse2 = await Http.GetAsync("api/Game/answers/" + questionId);
+                if (getResponse2.IsSuccessStatusCode == true)
+                {
+                    var answersFromSql = getResponse2.Content.ReadFromJsonAsync<List<Answer>>().Result;
+                    if (answersFromSql != null)
+                    {
+                        foreach (var a in answersFromSql)
+                        {
+                            answersDistractors.Add(a);
+                        }
+                        minSlider = answersDistractors.Select(n => n.Min).ToList().Min();
+                        maxSlider = answersDistractors.Select(n => n.Max).ToList().Max();
+                    }
+                }              
+            }
+        }
+    }
+
+
+    private void AddUserAnswer(string u)
+    {      
+        if (user != u && UsersAnswers.IndexOf(u) == -1)
+        {
+            UsersAnswers.Add(u);
+            MudDialog.SetTitle("");
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+
+    private async Task AnswerUser(Answer answerVAL)
+    {
+        ansValue = answerVAL;
+    }
+
+    private async Task Submit()
+    {
+        _isTimerExpired = false;
+        await hubConnection.SendAsync("AnswerQuestion", user, _isTimerExpired);
+
+        if (curQuestion.type == 1) {
+            ansValue = getAnswerBySliderValue(sliderValue);
+        }
+        isSent = true;
+        await ParentPage.ChangeDataAfterSubmit(ansValue.Id);
+        isTurnUpdated = true;
+    }
+
+
+    public async void HandleTimerExpired()
+    {
+        if (!isTurnUpdated)
+        {
+            _isTimerExpired = true;
+            await hubConnection.SendAsync("AnswerQuestion", user, _isTimerExpired);
+
+            ParentPage.ChangeTurnAfterTimer();
+
+            isTurnUpdated = true; 
+        }
+    }
+
+    public Answer getAnswerBySliderValue(int v) 
+    {
+        return answersDistractors.First(a => v <= a.Max && v >= a.Min);
+    }
+
+    public int GetUserAnsweredCount() {
+        return UsersAnswers.Count + didIAnswer;
+    }
+}
+

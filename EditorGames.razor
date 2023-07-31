@@ -1,0 +1,376 @@
+﻿@page "/EditorGames"
+@using NufarMeir_GalOxenberg.Shared.DTOs
+@inject HttpClient Http
+@inject NavigationManager navigationManager
+@inject IDialogService DialogService
+@using System.Linq;
+@using NufarMeir_GalOxenberg.Client.Components
+@using Portelem.Models
+
+<style>
+    :root {
+        --mud-secondary-darken: #F2E6FF;
+        --mud-table-hover: #EDE1FC;
+        --mud-info: #fefefe;
+        --mud-grid-item: rgba(213,211,150,21);
+        --mud-palette-table-lines: rgba(18,39,61,0.1);
+        --mud-palette-info: #12273D;
+        --mud-palette-action-default: #12273D;
+        --mud-Info: #12273D;
+        --mud-info-text: #12273D;
+    }
+
+      .container {
+    display: flex;
+    justify-content: center;
+  }
+  
+  .mud-grid {
+    width: auto;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+    ::-webkit-scrollbar-thumb{
+        background: #12273D;
+        direction:rtl;
+
+    }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #1C3D59;
+        }
+
+    .footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 9999;
+        min-height: 2vh;
+        background: #EFEED8;
+        display: grid;
+        justify-content: center;
+        font-size: 16px;
+        box-shadow: 10px 15px 15px 10px rgba(145, 142, 106, 1), 0 7px 7px 0 rgba(145, 142, 106, 1);
+        color: #12273D;
+    }
+</style>
+
+<div class="fixtable" style="opacity:@opacityBG">
+    <div class="editBG" Style="background-color: #EFEED8; height:100vh; margin: 0px;flex-direction:column" xs="12">
+
+        <div class="tableBG" style="background:#EFEED8;display: grid; width:auto;">
+            <div style="font-family: Fredoka; font-size: 1.4vw; padding-inline-start: 2vw; padding-inline-end: 2vw; background: rgba(213, 211, 150, 0.31); height: 15vh; -webkit-border-radius: 0px 0px 15px 15px; box-shadow: 0 15px 15px 0 rgba(145, 142, 106, 1), 0 7px 7px 0 rgba(145, 142, 106, 1); position: relative;display:flex;">
+
+                <div style="display: flex;flex-direction: column-reverse;">
+                    <img src="images/DarkLogo.png" style="width: 8%; position: absolute;top: 4vh;" />
+                    <MudIconButton OnClick="OpenDialogHELP" Style="color: #12273D; right:2vw;" Icon="@Icons.Material.Filled.Help" aria-label="help"></MudIconButton>
+                </div>
+                <div style="position: absolute;top: 1vh;right: 15vw;">
+                <h4 style="margin-left: 2vw; margin-top: 2vh; font-size:1.7vw;">
+                    Buizy הוא משחק עסקים קבוצתי שעוזר למנהלות ולמנהלים לקבל החלטות טוב יותר<br />
+                </h4>
+                <p style="font-size: 1.1vw">איך? כאן בונים משחקים עם כל תוכן שתרצו. למנהלים והמנהלות ישאר רק לפתוח את הטלפון בקבוצה, לבחור קלף ולהחליט נכון :)</p>
+                </div>
+            </div>
+
+            <br />
+            <br />
+        </div>
+
+       
+        <br /><br /><br />
+
+        @* games table elements*@
+        @if (EditorId != null)
+        {
+            <MudRTLProvider RightToLeft="true" Style="position: relative;bottom: 6vh;">
+                <p style="font-size: 1.3rem; position: absolute; right: 14.5vw;top: 2.5vh">היי @editorName, כאן ניתן לראות את המשחקים שיצרת</p>
+                <MudButton Variant="Variant.Filled" OnClick="InsertGame" EndIcon="@Icons.Material.Filled.Add" Style="font-size:large;font-family:Fredoka; color:white; background-color: #12273D; box-shadow: 0 2px 5px 0 rgba(10, 22, 33, 1); border-radius:15px; width:14vw; position: relative; right: 72.5vw;"> יצירת משחק עסקים </MudButton>
+                <div class="container" style="margin-top: 3vh;">
+                    <div class="mud-grid" Style="justify-content: center; display:flex; width: 73vw; rgba(213, 211, 150, 0.31); height: 62vh; border-radius: 32px; -moz-border-radius: 32px; -webkit-border-radius: 32px; box-shadow: 0 15px 15px 0 rgba(145, 142, 106, 1), 0 7px 7px 0 rgba(145, 142, 106, 1); border-bottom: 1px solid #12273D; overflow:hidden; position: fixed;">
+                    <MudItem md="12" Style="margin:4vh">
+                        <MudTable Items="GamesForEditor" FixedHeader="@fixed_header" FixedFooter="@fixed_footer" Height="@(fixed_header || fixed_footer ? "59vh":"")" Hover="true" Style="font-size:large;background:transparent;text-align:right;">
+                            <HeaderContent>
+                                    <MudTh Style="padding-right:1.5%; text-align:right; border-radius:0px;background-color: #EFEED8; color:#12273D;">שם המשחק</MudTh>
+                                    <MudTh Style="padding-right:2%;  text-align:center;background-color: #EFEED8; color:#12273D;">עריכה</MudTh>
+                                    <MudTh Style="padding-right:2%;  text-align:center;background-color: #EFEED8; color:#12273D;">מחיקה</MudTh>
+                                    <MudTh Style="text-align:center;background-color: #EFEED8; color:#12273D;">
+                                    שיתוף
+                                    <MudTooltip Text="השיתוף זמין במידה וכל תכני המשחק הוזנו" Arrow="true" Placement="Placement.Top" Color="Color.Info">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Info" Color="Color.Info" />
+                                    </MudTooltip>
+                                </MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                    <MudTd DataLabel="שם המשחק" Style="font-size:large;text-align:right;">@context.GameName</MudTd>
+                                    <MudTd DataLabel="עריכה" Style="font-size:large;text-align:center;">
+                                    <MudIconButton Icon="@Icons.Material.Filled.ModeEditOutline" aria-label="edit" @onclick=" () => editGame(context.Id)">
+                                    </MudIconButton>
+                                </MudTd>
+                                <MudTd DataLabel="מחיקה" Style="font-size:large; text-align:center; padding-right:2%">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" @onclick=" () => OpenDialogDELETE(context.GameName,context.Id)" aria-label="delete">
+                                    </MudIconButton>
+                                </MudTd>
+                                <MudTd Style="font-size:large; text-align:center">
+                                        <MudIconButton Icon="@Icons.Material.Filled.IosShare" @onclick="() => openShare(context)" Disabled="@(!context.IsPublished)" Color="Color.Info" />
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    </MudItem>
+                </div>
+                </div>
+              @*  <MudAlert id="callAlert" Severity="Severity.Success" ContentAlignment="HorizontalAlignment.Start" style="display: none;font-family:Fredoka;position: absolute; left: 0px; bottom: 15px; scale: 80%;">
+                    הלינק הועתק בהצלחה!
+                </MudAlert>*@
+            </MudRTLProvider>
+            }
+     </div>
+
+    <div>
+    <MudButton OnClick="goToExampleGame" Style="background-color:#EFEED8; border-radius: 3rem; box-shadow: 0 15px 15px 0 rgba(145, 142, 106, 1), 0 7px 7px 0 rgba(145, 142, 106, 1); color:#12273D; font-family:Fredoka; justify-content: center; position: fixed; top: 88vh;right:1vw; font-weight: 500; width:7vw">משחק לדוגמה</MudButton>
+    </div>
+
+    <div class="footer">
+        <div>תוצר זה פותח במסגרת פרויקט גמר לתואר ראשון <a href="https://www.hit.ac.il/telem/overview" target="_blank">בפקולטה לטכנולוגיות למידה</a> HIT</div>
+    </div>
+</div>
+
+
+@code {
+    [CascadingParameter]
+    public int EditorId { get; set; }
+    UserFromPortelem currentEditor;
+    List<GamesByEditor> GamesForEditor = new List<GamesByEditor>();
+    string GameToDelete;
+    bool fixed_header = true;
+    bool fixed_footer = false;
+    double opacityBG = 1;
+    DialogOptions maxWidth = new DialogOptions() { MaxWidth = MaxWidth.Medium, FullWidth = true };
+    public string editorName;
+    bool isFirstInsert = true;
+
+    List<string> DeletedImages = new List<string>();
+
+    protected async override Task OnInitializedAsync()
+    {
+        EditorId = 1;
+
+        var getResponse = await Http.GetAsync("api/Game/gamesByEditorId/" + EditorId);
+        if (getResponse.IsSuccessStatusCode == true)
+        {
+            var GamesForEditorFromSQL = getResponse.Content.ReadFromJsonAsync<List<GamesByEditor>>().Result;
+            if (GamesForEditorFromSQL != null)
+            {
+                GamesForEditor = GamesForEditorFromSQL;
+                
+                if (GamesForEditor.Count > 0)
+                {
+                    isFirstInsert = false; // User has already inserted at least one game
+                }
+            }
+        }
+        var getResponse2 = await Http.GetAsync("api/Game/NameByEditorId/" + EditorId);
+        if (getResponse2.IsSuccessStatusCode)
+        {
+            try
+            {
+                var nameFromSQL = await getResponse2.Content.ReadFromJsonAsync<string>();
+                if (nameFromSQL != null)
+                {
+                    editorName = nameFromSQL;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception occurred while reading the response content: {ex}");
+            }
+        }
+
+    }
+
+    async Task OpenDialogHELP()
+    {
+        var parameters = new DialogParameters();
+        parameters.Add("EditorId", EditorId);
+        parameters.Add("isFirstInsert", isFirstInsert);
+        var options = new DialogOptions() { MaxWidth = MaxWidth.Small, CloseOnEscapeKey = false, CloseButton = false, DisableBackdropClick = true };
+        var dialog = DialogService.Show<HowToEdit>("", parameters, options);
+    }
+
+    public async Task InsertGame()
+    {
+        if (isFirstInsert)
+        {
+            var parameters2 = new DialogParameters();
+            parameters2.Add("EditorId", EditorId);
+            parameters2.Add("isFirstInsert", isFirstInsert);
+            var options2 = new DialogOptions() { MaxWidth = MaxWidth.Small, CloseOnEscapeKey = false, CloseButton = false, DisableBackdropClick = true };
+            var dialog2 = DialogService.Show<HowToEdit>("", parameters2, options2);
+            var result = await dialog2.Result;
+
+            if (!result.Cancelled)
+            {
+                var parameters = new DialogParameters();
+                parameters.Add("EditorId", EditorId);
+                parameters.Add("SavedGame", null);
+                var options = new DialogOptions() { MaxWidth = MaxWidth.Small, CloseOnEscapeKey = false, CloseButton = false, DisableBackdropClick = true };
+                var dialog = DialogService.Show<Settings>("", parameters, options);
+            }
+        }
+        else
+        {
+            var parameters = new DialogParameters();
+            parameters.Add("EditorId", EditorId);
+            parameters.Add("SavedGame", null);
+            var options = new DialogOptions() { MaxWidth = MaxWidth.Small, CloseOnEscapeKey = false, CloseButton = false, DisableBackdropClick = true };
+            var dialog = DialogService.Show<Settings>("", parameters, options);
+        }
+    }
+
+    public async Task editGame(int id)
+    {
+        navigationManager.NavigateTo($"EditorBoard/{id}");
+    }
+
+    //בלחיצה על אייקון מחיקה- הצגת הפופאפ
+    private async void OpenDialogDELETE(string GameName, int GameID)
+    {
+        var parameters = new DialogParameters();
+        parameters.Add("ContentText", "  האם ברצונך למחוק את המשחק" + " " + GameName + "?");
+        parameters.Add("ButtonText", "מחיקה");
+        parameters.Add("Color", Color.Secondary);
+        parameters.Add("GameToDelete", GameToDelete);
+
+        var options = new DialogOptions() { CloseButton = false, MaxWidth = MaxWidth.ExtraSmall, NoHeader = true };
+        var dialog = DialogService.Show<DeleteGameDialog>("", parameters, options);
+
+        var result = await dialog.Result;
+
+        if (!result.Cancelled)
+        {
+            await DeleteGame(GameID);
+        }
+        StateHasChanged();
+    }
+
+    public async Task DeleteGame(int GameID)
+    {
+        // TODO: Retrieve and delete questions and their associated answers
+        var questionResponse = await Http.GetAsync("api/Game/allQuestions/" + GameID);
+        if (questionResponse.IsSuccessStatusCode)
+        {
+            var questionsToDelete = await questionResponse.Content.ReadFromJsonAsync<List<Question>>();
+            foreach (var Q in questionsToDelete)
+            {
+                var getResponse7 = await Http.GetAsync("api/Game/answers/" + Q.id);
+                if (getResponse7.IsSuccessStatusCode)
+                {
+                    var answersToDelete = await getResponse7.Content.ReadFromJsonAsync<List<Answer>>();
+                    foreach (var a in answersToDelete)
+                    {
+                        var DeleteResponse4 = await Http.DeleteAsync("api/Game/DeleteScalesAnswers/" + a.Id);
+                        var DeleteResponse3 = await Http.DeleteAsync("api/Game/DeleteResourcesAnswers/" + a.Id);
+                        var DeleteResponse5 = await Http.DeleteAsync("api/Game/DeleteAnswer/" + a.Id);
+                    }
+                }
+                var DeleteResponse2 = await Http.DeleteAsync("api/Game/DeleteQuestion/" + Q.id);
+            }
+        }
+
+        // TODO: Delete unexpected elements
+        var unexpectedResponse = await Http.GetAsync("api/Game/allUnexpected/" + GameID);
+        if (unexpectedResponse.IsSuccessStatusCode)
+        {
+            var unExpectedToDelete = await unexpectedResponse.Content.ReadFromJsonAsync<List<UnexpectedElement>>();
+            foreach (var u in unExpectedToDelete)
+            {
+                var DeleteResponse7 = await Http.DeleteAsync("api/Game/DeleteUnexpectedResource/" + u.id);
+                var DeleteResponse6 = await Http.DeleteAsync("api/Game/DeleteUnexpected/" + u.id);
+            }
+        }
+
+        // Reset resources and scales
+        var getResponse6 = await Http.GetAsync("api/Game/resourceIdByGameId/" + GameID);
+        if (getResponse6.IsSuccessStatusCode)
+        {
+            var getResponse11 = await Http.DeleteAsync("api/Game/resourcesReset/" + GameID);
+        }
+        var getResponse2 = await Http.GetAsync("api/Game/scaleIdByGameId/" + GameID);
+        if (getResponse2.IsSuccessStatusCode)
+        {
+            var getResponse10 = await Http.DeleteAsync("api/Game/scalesReset/" + GameID);
+        }
+
+        // Delete user scores and associated users
+        var getResponse = await Http.GetAsync("api/User/getIdAndName/" + GameID);
+        if (getResponse.IsSuccessStatusCode)
+        {
+            var usersLoggedIn = await getResponse.Content.ReadFromJsonAsync<List<User>>();
+            foreach (var u in usersLoggedIn)
+            {
+                var getResponse9 = await Http.DeleteAsync("api/Game/emptyScores/" + u.Id);
+                if (!getResponse9.IsSuccessStatusCode)
+                {
+                    throw new Exception("Failed to delete User");
+                }
+            }
+            var getResponse8 = await Http.DeleteAsync("api/Game/emptyUsers/" + GameID);
+        }
+
+        // Delete the game itself
+        var DeleteResponse = await Http.DeleteAsync("api/Game/" + GameID);
+
+        // Check if the deletion was successful based on the HTTP status code
+        if (DeleteResponse.IsSuccessStatusCode)
+        {
+            // Remove the game from the list
+            GamesForEditor.RemoveAll(g => g.Id == GameID);
+            StateHasChanged();
+        }
+        else
+        {
+            Console.WriteLine("Failed to delete the game. Status code: " + DeleteResponse.StatusCode);
+        }
+    }
+
+
+    public void goToExampleGame(){
+        var parameters = new DialogParameters();
+        parameters.Add("EditorId", EditorId);
+
+        var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Small,
+                CloseOnEscapeKey = false,
+                CloseButton = false,
+                DisableBackdropClick = true,
+                NoHeader = true
+            };
+        var dialog = DialogService.Show<GoToGame>("", parameters, options);
+    }
+
+
+    public void openShare(GamesByEditor game)
+    {
+        GameClass SavedGame = new GameClass();
+        SavedGame.Id = game.Id;
+         SavedGame.GameName = game.GameName;
+        SavedGame.IsPublished = game.IsPublished;
+
+        var parameters = new DialogParameters();
+        parameters.Add("SavedGame", SavedGame);
+
+            var options = new DialogOptions
+                {
+                    MaxWidth = MaxWidth.ExtraLarge,
+                    CloseOnEscapeKey = false,
+                    CloseButton = false,
+                    DisableBackdropClick = true,
+                    NoHeader = true
+                };
+            var dialog = DialogService.Show<GetLink>("", parameters, options);
+    }
+    
+}

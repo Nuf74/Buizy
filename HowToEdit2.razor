@@ -1,0 +1,81 @@
+﻿@inject NavigationManager navigationManager
+
+<style>
+    :root {
+        --mud-palette-secondary-darken: #1C3D59;
+    }
+
+
+
+    .mud-button-filled.mud-button-filled-secondary {
+        background-color: #12273D;
+        color: white;
+    }
+
+
+    .mud-overlay .mud-overlay-scrim.mud-overlay-dark {
+        background-color: gray;
+        opacity: 30%;
+    }
+
+    .mud-dialog .mud-dialog-title {
+    padding:unset;
+    }
+
+    .mud-dialog .mud-dialog-actions {
+        padding: 1vw;
+        margin-top: -2vw;
+    }
+    
+
+</style>
+
+<PageTitle>How To Edit</PageTitle>
+@*
+                <div class="card shadow-2-strong" style="background-color:#12273D; border-radius: 3rem; box-shadow: 0 15px 15px 0 rgba(9, 20, 30, 1), 0 7px 7px 0 rgba(9, 20, 30, 1);"
+                <img src="images/howToPlay.png" />
+                </div>/>*@
+<MudDialog Style=" background-color: #EFEED8;
+        position: sticky;
+        border-radius: 15px 15px 15px 15px;
+        text-align: right;
+            box-shadow: 0 15px 15px 0 rgba(145, 142, 106, 0.7), 0 7px 7px 0 rgba(145, 142, 106, 0.7); width:64vw; max-width:unset;">
+<TitleContent>
+        <div style=" background-color: #EFEED8;
+        position: sticky;
+        border-radius: 15px 15px 15px 15px;
+        text-align: right;
+            box-shadow: 0 15px 15px 0 rgba(145, 142, 106, 0.7), 0 7px 7px 0 rgba(145, 142, 106, 0.7); width: auto; height: 11vh;">
+            <p style=" padding-right: 2vw; padding-top: 2vh; font-size:1vw; color:#12273D;}">
+                מסך יצירת ועריכת המשחק זהה למסך אותו יראו השחקנים והשחקניות, בלחיצה על כל חלק במסך נוכל להזין או לערוך את תכניו
+            </p>
+            <p style=" padding-right: 2vw; padding-top: 2vh; font-size:1vw; color:#12273D;}">אז מה מכיל לוח עריכת המשחק?</p>
+        </div>
+</TitleContent>   
+<DialogContent>
+        <MudImage Src="images/HowToEditNEW.png" Width="42" Height="25" Fluid="true" Style="transform:scale(90%);"></MudImage>
+    </DialogContent>
+    <DialogActions>
+        <MudButton style="font-family:Fredoka; margin-top: 0.5vw;
+}" Color="Color.Secondary" Variant="Variant.Filled" OnClick="@(async () => {
+                    await Submit();
+                       MudDialog.SetTitle("");
+                       StateHasChanged();})">הבנתי, תודה</MudButton>
+
+    </DialogActions>
+</MudDialog>
+
+
+
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [Parameter]
+    public int gameId{ get; set; }
+
+
+    private async Task Submit()
+    {
+        navigationManager.NavigateTo($"EditorBoard/{gameId}");
+    }
+}

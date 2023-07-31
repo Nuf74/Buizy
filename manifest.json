@@ -1,0 +1,20 @@
+{
+  "name": "Buizy",
+  "short_name": "Buizy",
+  "start_url": ".",
+  // "id": "/",
+  "background_color": "#12273D",
+  "theme_color": "#12273D",
+  "Background color": "#12273D",
+  "prefer_related_applications": false,
+  "orientation": "any",
+  "display": "fullscreen",
+  "icons": [
+    {
+      "src": "BigDarkLogo.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}
+

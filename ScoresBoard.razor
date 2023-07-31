@@ -1,0 +1,265 @@
+﻿@using Microsoft.AspNetCore.SignalR.Client
+@using NufarMeir_GalOxenberg.Shared.DTOs
+@using NufarMeir_GalOxenberg.Client.Components
+@using System.Linq
+@inject HttpClient Http
+@inject NavigationManager navigationManager
+@page "/ScoresBoard/{gameId:int}"
+
+<style>
+    :root {
+        --bs-success-rgb: 130,189,80;
+        --bs-warning-rgb: 235,232,126;
+        --bs-danger-rgb: 223,102,33;
+    }
+
+    .kahoot-list {
+        position: relative;
+        max-width: 100px;
+        margin: 0 auto;
+        padding: 0;
+        display: flex;
+        top: 12rem;
+        right: 20rem;
+    }
+
+    .list-group-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.25rem 0.5rem;
+        background-color: #ffffff;
+        margin-bottom: 10px;
+        border: none;
+        border-radius: 5px;
+        box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .list-item-name {
+        font-weight: bold;
+    }
+
+    .list-item-grade {
+        color: #757575;
+    }
+     
+    .mud-button-root:disabled {
+        opacity: 0.6;
+        color: gray !important;
+        cursor: default;
+        pointer-events: none;
+    }
+</style>
+
+<section class="vh-100" style="background-color:#12273D;">
+    <div class="container">
+        <!-- Podium Section -->
+        <h2 style="color:white; text-align: center;padding-top: 1rem;">
+            @winner מזל טוב!
+        </h2>
+        <div class="row justify-content-center">
+            <div class="col-12">
+                <div class="row justify-content-center">
+                    @{
+                        for (int i = 0; i < Math.Min(3, sortedUserGrades.Count); i++)
+                        {
+                            winner = sortedUserGrades[0].UserName;
+                            var user = sortedUserGrades[i];
+                            var winnerClass = i == 0 ? "winner-card-middle" : "winner-card";
+                            var winnerGrade = i == 0 ? "winner-grade" : "";
+                                    <div class="col-3 mt-3">
+                                        <div class="@winnerClass">
+                                            <div class="card-body">
+                                                <h5 class="card-title">@user.UserName</h5>
+                                                <p class="@winnerGrade">@user.Grade</p>
+                                                <div>
+                                                    @if (user.ScaleScores.Count > 0)
+                                            {
+                                                var userScoreList = user.ScaleScores;
+                                                foreach (var score in userScoreList)
+                                                {
+                                                    var barColor = GetBarColor(score.Score);
+                                                            <p style="font-size:x-small">@score.ScaleName</p>
+                                                            <div class="progress my-1" style="height:0.8rem;">
+                                                                <div class="progress-bar bg-@barColor" style="width:@score.Score%; align-items:flex-start; color:black;" role="progressbar" aria-valuenow="@score.Score" aria-valuemin="0" aria-valuemax="100">@score.Score%</div>
+                                                            </div>
+                                                }
+                                            }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                        }
+                    }
+                </div>
+                <MudButton Style="background-color: #12273D;
+    border-radius: 3rem;
+    box-shadow: 0 15px 15px 0 rgba(9, 20, 30, 1), 0 7px 7px 0 rgba(9, 20, 30, 1);
+    color: rgb(223,102,33);
+    font-family: Fredoka;
+    text-align: center;
+    position: fixed;
+    bottom: 10vh;
+    left: 88vw;
+    width: fit-content;
+    font-weight: 400;" OnClick="DONE" Disabled=@(usersLoggedIn.Count == 0)>איפוס</MudButton>
+@*            </div>
+        </div>*@
+        <!-- List Section -->
+@*        <div class="row justify-content-center mt-5">
+            <div class="col-10 col-md-6">*@
+                <ul class="list-group kahoot-list">
+                    @for (int i = 3; i < sortedUserGrades.Count; i++)
+                    {
+                        var user = sortedUserGrades[i];
+                        <li class="list-group-item">
+                            <span class="list-item-name">@user.UserName</span>
+                            <span class="list-item-grade">@user.Grade</span>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+@code {
+    private HubConnection? hubConnection;
+    [Parameter]
+    public int gameId { get; set; }
+    private List<User> usersLoggedIn = new List<User>();
+    List<Scales> scalesList = new List<Scales>();
+    List<int> scoreForEachId = new List<int>();
+    public List<UserGrade> userGrades = new List<UserGrade>();
+    public List<UserGrade> sortedUserGrades = new List<UserGrade>();    
+    public string winner = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+       .WithUrl(navigationManager.ToAbsoluteUri("./game"))
+       .Build();
+
+
+        hubConnection.On("Reset", async () =>
+        {
+            await DONE2();
+        });
+
+        await hubConnection.StartAsync();
+
+        var getResponse3 = await Http.GetAsync("api/Game/scaleIdByGameId/" + gameId);
+        if (getResponse3.IsSuccessStatusCode == true)
+        {
+            var scalesIdFromSql = getResponse3.Content.ReadFromJsonAsync<List<int>>().Result;
+            if (scalesIdFromSql != null)
+            {
+                foreach (var ScaleId in scalesIdFromSql)
+                {
+                    var getResponse5 = await Http.GetAsync("api/Game/scalesById/" + ScaleId);
+                    if (getResponse5.IsSuccessStatusCode == true)
+                    {
+                        var scaleFromSql = getResponse5.Content.ReadFromJsonAsync<Scales>().Result;
+                        scalesList.Add(scaleFromSql);
+                    }
+                }
+            }
+        }
+
+        var getResponse = await Http.GetAsync("api/User/getIdAndName/" + gameId);
+        if (getResponse.IsSuccessStatusCode == true)
+        {
+            usersLoggedIn = await getResponse.Content.ReadFromJsonAsync<List<User>>();
+            if (usersLoggedIn != null)
+            {
+                var userIdfromSQL = 0;
+                foreach (var u in usersLoggedIn)
+                {
+                    var getResponse10 = await Http.GetAsync("api/Game/getUserIdByName/" + u.Name);
+                    if (getResponse10.IsSuccessStatusCode == true)
+                    {
+                        userIdfromSQL = await getResponse10.Content.ReadFromJsonAsync<int>();
+
+                        var getResponse2 = await Http.GetAsync("api/Game/getUpdatedScoreById/" + userIdfromSQL);
+
+                        var scoreFromSql = getResponse2.Content.ReadFromJsonAsync<Scores>().Result;
+                        if (scoreFromSql != null)
+                        {
+                            scoreForEachId.Clear();
+                            scoreForEachId.Add(scoreFromSql.scale1);
+                            scoreForEachId.Add(scoreFromSql.scale2);
+                            scoreForEachId.Add(scoreFromSql.scale3);
+                            scoreForEachId.Add(scoreFromSql.scale4);
+                            scoreForEachId.Add(scoreFromSql.scale5);
+
+                            var userGrade = new UserGrade { UserName = u.Name, Grade = scoreFromSql.grade };
+                            int index = 0;
+                            foreach (var scale in scalesList)
+                            {
+                                userGrade.ScaleScores.Add(new ScaleScore { ScaleName = scale.ScaleName, Score = scoreForEachId[index] });
+                                index++;
+                            }
+
+                            userGrades.Add(userGrade);
+                        }                        
+                    }
+                }
+                sortedUserGrades = userGrades.OrderByDescending(ug => ug.Grade).ToList();
+                winner = sortedUserGrades[0].UserName;
+            }
+        }
+    }
+
+    private string GetBarColor(int score)
+    {
+        if (score < 30)
+        {
+            return "danger";
+        }
+        else if (score > 31 && score < 80)
+        {
+            return "warning";
+        }
+        else
+        {
+            return "success";
+        }
+    }
+
+    public async Task DONE()
+    {
+        if (userGrades.Count > 0)
+        {
+            await hubConnection.SendAsync("ResetNumbersOfSubmitted");
+        }
+    }
+
+    public async Task DONE2()
+    {
+        //Reset all game data
+        var getResponse6 = await Http.GetAsync("api/Game/questionsReset/" + gameId);
+        var getResponse7 = await Http.GetAsync("api/Game/unexpectedReset/" + gameId);
+        foreach (var u in usersLoggedIn)
+        {
+            var getResponse9 = await Http.DeleteAsync("api/Game/emptyScores/"+u.Id);
+            if (getResponse9.IsSuccessStatusCode != true)
+            {
+                throw new Exception("Failed to delete User");
+            }
+        }
+
+        var getResponse8 = await Http.DeleteAsync("api/Game/emptyUsers/" + gameId);
+            if (getResponse8.IsSuccessStatusCode == true)
+            {
+            navigationManager.NavigateTo("https://projects.telem-hit.net/2023/Buizy_NufarGal");
+            }  
+    }
+
+    public class UserGrade
+    {
+        public string UserName { get; set; }
+        public int Grade { get; set; }
+        public List<ScaleScore> ScaleScores { get; set; } = new List<ScaleScore>();
+    }
+}

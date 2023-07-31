@@ -1,0 +1,904 @@
+﻿@inject HttpClient Http
+@inject IDialogService DialogService
+@using NufarMeir_GalOxenberg.Shared.DTOs
+@using NufarMeir_GalOxenberg.Client.Components
+@inject NavigationManager navigationManager
+
+<style>
+    :root {
+        --mud-palette-info: #12273D;
+        --mud-Info: #12273D;
+        --mud-info-text: #12273D;
+        --bs-success-rgb: 130,189,80;
+        --bs-warning-rgb: 235,232,126;
+        --bs-danger-rgb: 223,102,33;
+    }
+    #toolTip1 {
+    display: flex;
+    margin-bottom: 30vh;
+    position: relative;
+    @toolTipRotate;
+    }
+
+    #toolTip2 {
+       scale:120%;
+    display: flex;
+    z-index: 1;
+    @toolTipRotate;
+    }
+
+   .hover\:mud-info-hover:hover, .hover\:mud-info-hover:focus-visible{
+        background-color:transparent !important;
+    }
+
+    .hexagontent2{
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.4rem;
+    line-height: 1.2;
+    z-index: 100;
+    width: 140%;
+    }
+
+/*    .mud-tooltip-root.mud-tooltip-inline {
+        display: block;
+    }*/
+
+    .tooltip7 {
+    position: relative;
+    display: inline-block;
+    }
+
+    .tooltip-text {
+        visibility: hidden;
+        width: 213px;
+        margin-top: 8px;
+        background-color: #12273D;
+        color: white;
+        text-align: center;
+        padding: 7px;
+        border-radius: 6px;
+        position: absolute;
+        z-index: 1;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        opacity: 0;
+        font-size: 11px;
+        transition: opacity 0.3s;
+    }
+
+    .tooltip7:hover .tooltip-text {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    .opacity {
+     opacity: 0.5;
+    filter: grayscale(1);
+    pointer-events: auto;
+    }
+
+    .opacity2 {
+    filter: grayscale(0.5);
+    pointer-events: none;
+    }
+
+    .mud-icon-button {
+    padding: 0px;
+    }
+
+        .footer {
+        position: inherit;
+        top: 89vh;
+        z-index: 9999;
+        min-height: 2vh;
+        padding:0.5vw;
+        min-width: 100%;
+        display: grid;
+        justify-content: left;
+        text-align: right;
+        font-size: 12px;
+        color: #12273D;
+    }
+</style>
+
+@page "/EditorBoard/{gameId:int}"
+<PageTitle>Buizy Editor</PageTitle>
+
+<section class="vh-100 container-fluid" style="background-color:#EFEED8; position: fixed;">
+    <div style="font-family:Fredoka; margin-top: 0.3vh;position: absolute;">
+        <MudIconButton OnClick="backToGames" Icon="@Icons.Material.Filled.NavigateNext" Color="Color.Info" />
+        חזרה למשחקים שלי
+        </div>
+    <div style="display: flex; justify-content: center; align-items: center; text-align:center;" class="container">
+        <div class="playerName p-2 ali" style="color:#12273D; display:grid; justify-content:center; width:40% ;border-radius: 0px 0px 20px 20px; margin-right:6vw;
+    top: 0px;
+    width: 25%;
+    height: 12%;
+    background-color:#EFEED8; box-shadow: 0 15px 15px 0 rgba(145, 142, 106, 1), 0 7px 7px 0 rgba(145, 142, 106, 1);">
+            <p style="color:#12273D; border-radius:5px; font-size: 1.3vw;; font-weight: 600;" class="mb-0">@SavedGame.GameName</p>
+       </div>
+    </div>
+    <p style="color:#12273D; border-radius:7px;  display: flex; font-size: 1rem; margin-right: 6vw; justify-content: center; padding-top: 2vh;text-align:center;">
+        הוסיפו משאבים ומדדים >
+        הזינו תוכן בכל אחד מהמשושים >
+        לחצו על "המשחק מוכן!"
+    </p>
+
+    <div class="honeycomb row-cols-sm-8" style="@rotate; scale:@scale; margin-right:@marginRight; margin-top:@marginTop; position:relative; display:flex; justify-content:center;">
+        <MudTooltip id="toolTip1" Text="לחצו על כל משבצת בלוח להוספת סבב קבלת החלטות/ הפתעה" Arrow="true" Color="Color.Info" Placement=" Placement.Left">
+            <MudIconButton style="font-family:Fredoka" Icon="@Icons.Material.Filled.Info" Color="Color.Info" />
+        </MudTooltip>
+
+            @if (!isScales || !isResources)
+            {
+                <MudTooltip id="toolTip2" Text="יש למלא תוכן עבור המדדים והמשאבים על מנת לאפשר את עריכת המשושים" Arrow="true" Color="Color.Info" Placement="Placement.Left">
+                    <MudIconButton style="font-family:Fredoka" Icon="@Icons.Material.Filled.Block" Color="Color.Info" />
+                </MudTooltip>
+            }
+
+        <div class="ibws-fix @(isScales && isResources ? "" : "opacity2")">
+
+            @if (SavedGame.CardsQuantity == 12)
+            {
+                scale = "120%";
+                marginRight = "5vw";
+                rotate = "";
+                marginTop = "21vh";
+
+
+                @for (int i = 0; i < SavedGame.CardsQuantity / 6; i++)
+                {
+                    <div class="fluid w-85">
+                        @for (int j = 0; j < 6; j++)
+                        {
+                            var index = (i * 6) + j;
+                            if (index >= SavedGame.CardsQuantity) break;
+
+                            var (imageSource, imgScale) = GetHexagonImage(index);
+
+                            <div class="hexagon" style="background-color: #E2E1B7;" @onclick="() => QuestionTypeDialog(index)">
+                                <div class="hexagontent2">
+                                    <img src="@imageSource" style="scale:@imgScale; width: 70%;" />
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            }
+
+            @if (SavedGame.CardsQuantity == 9)
+            {
+                scale = "130%";
+                marginRight= "5vw";
+                rotate = "rotate:90deg;";
+                marginTop = "19vh";
+                toolTipRotate = "rotate: 90deg;";
+
+
+                @for (int i = 0; i < SavedGame.CardsQuantity / 3; i++)
+                {
+                    <div class="container-fluid w-85">
+                        @for (int j = 0; j < 3; j++)
+                        {
+                            var contentIndex = (i * 3) + j;
+                            if (contentIndex >= SavedGame.CardsQuantity) break;
+
+                            var (imageSource, imgScale) = GetHexagonImage(contentIndex);
+
+                            <div class="hexagon" style="background-color: #E2E1B7;" @onclick="() => QuestionTypeDialog(contentIndex)">
+                              <div class="hexagontent2">
+                                    <img src="@imageSource" style="scale:@imgScale; transform:rotate(270deg);width: 70%;" />
+                              </div>
+                        </div>
+
+                        }
+                    </div>
+                }
+            }
+
+            
+            @if (SavedGame.CardsQuantity == 6)
+            {
+                scale = "140%";
+                marginRight= "5vw";
+                marginTop = "19vh";
+                rotate = "";
+
+                @for (int i = 0; i < SavedGame.CardsQuantity / 3; i++)
+                {
+                    <div class="container-fluid w-85">
+                        @for (int j = 0; j < 3; j++)
+                        {
+                            var contentIndex = (i * 3) + j;
+                            if (contentIndex >= SavedGame.CardsQuantity) break;
+
+                            var (imageSource, imgScale) = GetHexagonImage(contentIndex);
+
+                            <div class="hexagon" style="background-color: #E2E1B7;" @onclick="() => QuestionTypeDialog(contentIndex)">
+                              <div class="hexagontent2">
+                                    <img src="@imageSource" style="scale:@imgScale;width: 70%;" />
+                              </div>
+                        </div>
+
+                        }
+                    </div>
+                }
+            }
+           
+    </div>
+</div>
+
+
+    <div class="row-cols-sm-2" style="background-color:#EFEED8; box-shadow: 0 15px 15px 0 rgba(145, 142, 106, 1), 0 7px 7px 0 rgba(145, 142, 106, 1); display: flex; justify-content: center;">
+        <img src="images/DarkLogo.png" style="scale: 130%; position: absolute; top: 5%; left: 22%;" />
+        <MudIconButton OnClick="Settings" style="scale: 120%; margin-bottom: 36rem; height: 2rem; width: 2rem; margin-top:4rem; margin-left:1rem;" Icon="@Icons.Material.Filled.Settings" Color="Color.Info" />
+        <MudIconButton OnClick="openHelpDialog" style="scale: 120%; margin-bottom: 25rem; height: 2rem; width: 2rem; margin-top:4rem;" Icon="@Icons.Material.Filled.Help" Color="Color.Info" />
+        <MudButton OnClick="openAboutUs" Style="background-color:#EFEED8; border-radius: 3rem; box-shadow: 0 15px 15px 0 rgba(145, 142, 106, 1), 0 7px 7px 0 rgba(145, 142, 106, 1); color:#12273D; font-family:Fredoka; justify-content: center; position: fixed; top: 81vh; font-weight: 500; width:7vw">מי אנחנו?</MudButton>
+       <div class="footer">
+            <div>פותח במסגרת פרויקט גמר <br>תואר ראשון - <a href="https://www.hit.ac.il/telem/overview" target="_blank">טכנולוגיות למידה</a><br> המכון הטכנולוגי חולון, HIT</div>
+    </div>
+    </div>
+
+
+    <div class="row-cols-sm-8">
+
+        <div class="market" style="background-color:#EFEED8; box-shadow: 0 15px 15px 0 rgba(145, 142, 106, 1), 0 7px 7px 0 rgba(145, 142, 106, 1); height: 14%; margin-top: 1%; display: flex; flex-direction: column; justify-content: flex-start; align-items: center;">
+            <p style="color:#12273D; font-size: 1rem; font-weight: 450; display: flex; justify-content: center; padding-top: 0.45rem;">
+                מצב השוק
+                <MudTooltip Text="מצב השוק משוקלל ממדדי כלל השחקנים והשחקניות והוא מתעדכן אוטומטית במהלך המשחק" Arrow="true" Color="Color.Info" Placement=" Placement.Left">
+                    <MudIconButton style="font-family:Fredoka; display: initial; " Icon="@Icons.Material.Filled.Info" Color="Color.Info" />
+                </MudTooltip>
+            </p>
+            <div class="trafficlight" style="top:16%; color:#12273D; display: flex; scale: 35%; justify-content: center; margin-right: 8.7vw; align-items: center; height: 16vh; width: 13vh;">
+                <div class="red" style="opacity:@redOpacity; top: 2vh; left: 2vw;}"></div>
+                <div class="yellow" style="opacity:@yellowOpacity; top: 20vh; left: 2vw; "></div>
+                <div class="green" style="opacity:@greenOpacity; top: 39vh; left: 2vw;"></div>
+            </div>
+        </div>
+
+
+
+        <div class="scales px-2" @onclick="EditScales" style="top: 21%; height: 52%; padding-top: 0.5rem; display:grid; background-color:#EFEED8; box-shadow: 0 15px 15px 0 rgba(145, 142, 106, 1), 0 7px 7px 0 rgba(145, 142, 106, 1); color:#12273D;cursor: pointer;">
+            <p style="color:#12273D; font-size: 1rem; font-weight: 450; display: flex; justify-content: center; padding-top: 0.3rem;">מדדים
+
+
+@*            <MudTooltip Text="הזנת ערך כמותי למאפיינים הרלוונטיים לתכני המשחק
+המדדים יוצגו לכלל השחקנים ויושפעו לאורך כל המשחק בהתאם להחלטותיהם" Arrow="true" Placement="Placement.Left" Color="Color.Info">
+                <MudIconButton style="font-family:Fredoka; display: initial;" Icon="@Icons.Material.Filled.Info" Color="Color.Info" />
+            </MudTooltip>
+*@
+                <MudTooltip style="font-family:Fredoka;display: initial;" Arrow="true" Placement="Placement.Left" Color="Color.Info">
+    <ChildContent>
+             <MudIconButton style="font-family:Fredoka; display: initial;" Icon="@Icons.Material.Filled.Info" Color="Color.Info" />
+    </ChildContent>
+    <TooltipContent>
+            <MudText Style="font-family:Fredoka; font-size:13px; font-weight:500">הזנת ערך כמותי למאפיינים הרלוונטיים לתכני המשחק</MudText>
+            <MudText Style="font-family:Fredoka; font-size:13px; font-weight:500">המדדים יוצגו לכלל השחקנים ויושפעו לאורך כל המשחק בהתאם להחלטותיהם</MudText>
+    </TooltipContent>
+</MudTooltip>
+
+            </p>
+
+            @foreach (Scales s in scalesList)  
+            {
+                if (s.Value < 30)
+                {
+                    barColor = "danger";
+                }
+                else if (s.Value > 31 && s.Value < 80)
+                {
+                    barColor = "warning";
+                }
+                else
+                {
+                    barColor = "success";
+                }
+                <p style="font-size:13px; line-height:0.1rem;">@s.ScaleName</p>
+                <div class="progress my-1" style="height:1.1rem; border-color:#12273D;">
+                    <div class="progress-bar bg-@barColor" style="width:@s.Value%; align-items:flex-start; color:#12273D; font-size:12px;" role="progressbar" aria-valuenow="@s.Value" aria-valuemin="0" aria-valuemax="100">@s.Value%</div>
+                </div>
+            }
+
+@*            <MudIcon Icon="@Icons.Material.Filled.Add" @onclick="EditScales" Title="Add" Style="margin-right: auto;cursor: pointer;margin-left: auto;" hidden=@(isScales) 
+*@             <p @onclick="EditScales" Title="Add" Style="margin-right: auto;
+    cursor: pointer;
+    margin-left: auto;
+    font-size: 3rem;
+    font-weight: 600;
+    filter: drop-shadow(1px 1px 1px black);" hidden=@(isScales)>+</p>
+        </div>
+
+
+        <div class="resourcesEditor" @onclick="EditResources" style="background-color:#EFEED8; box-shadow: 0 15px 15px 0 rgba(145, 142, 106, 1), 0 7px 7px 0 rgba(145, 142, 106, 1); cursor: pointer;">
+            <p style="color:#12273D; font-size: 1rem; font-weight: 450; display: flex; justify-content: center; padding-top: 0.3rem;">
+                משאבים
+                <MudTooltip Text="הזנת כלל האמצעים החומריים העומדים לרשות השחקנים והשחקניות במהלך המשחק כולו" Arrow="true" Placement="Placement.Left" Color="Color.Info">
+                    <MudIconButton style="font-family:Fredoka;" Icon="@Icons.Material.Filled.Info" Color="Color.Info" />
+                </MudTooltip>
+
+
+            </p>
+
+            <p @onclick="EditResources" Title="Add" Style="margin-right: auto;
+    margin-top: 1rem;
+    cursor: pointer;
+    margin-left: auto;
+    font-size: 3rem;
+    color: #12273D;
+    filter: drop-shadow(1px 1px 1px black);
+    font-weight: 600;" hidden=@(isResources)>+</p>
+
+            <div style="display: flex; flex-direction: row; justify-content: space-evenly; place-items:center;margin-bottom: auto;margin-top: auto;">
+            @foreach (Resource r in resourcesList)
+            {
+                    <div class="oneresource" style="margin-top:1rem; display: grid; place-items:center; position:relative; height:14vh;">
+                        <p style="color:rgb(18, 39, 61); font-size:@resourceFontSize; line-break: auto;direction: ltr;">   @r.Quantity.ToString("#,##0")  <br> @r.Type</p>
+                </div>
+            }
+            </div>
+        </div>
+        </div>
+
+    <button class="tooltip7 @(!ReadyBTN ? "" : "opacity")" @onclick="openFinalDialog" Style="font-size:large;font-family:Fredoka; color:white; background-color: #12273D; box-shadow: 0 2px 5px 0 rgba(10, 22, 33, 1); border-radius:15px; width: 10vw; position: relative; display: flex; justify-content: center; margin-top:@marginTopButton; margin-right: 71vw;">
+        המשחק מוכן!
+        <span class="tooltip-text">
+            שימו לב! המשחק יהיה ניתן להפצה בהשלמת כל משבצות הלוח והזנת @minQues סבבי קבלת החלטות לפחות
+        </span>
+    </button>
+
+
+</section>
+
+@code {
+    [Parameter]
+    public int gameId { get; set; }
+    [Inject]
+    public IJSRuntime JSRuntime { get; set; }
+    public GameClass SavedGame = new GameClass();
+    public string rotate = "";
+    public string barColor = "";
+    public string marginTop = "";
+    public double yellowOpacity = 0.25;
+    public double redOpacity = 0.25;
+    public double greenOpacity = 0.25;
+    public string marginRight = "";
+    public string scale = "";
+    public List<Resource> resourcesList = new List<Resource>();
+    public List<Scales> scalesList = new List<Scales>();
+    public List<HexContent> mixedHexContent = new List<HexContent>();
+    public string toolTipRotate = "";
+    public string resourceFontSize = "";
+    private Dictionary<int, bool> hexagonStates = new Dictionary<int, bool>();
+    public List<Question> questions = new List<Question>();
+    public List<UnexpectedElement> unexpectedList = new List<UnexpectedElement>();
+    public int count = 0;
+    public bool ReadyBTN = true;
+    public int minQues = 0;
+    public bool isScales = false;
+    public bool isResources = false;
+    public string marginTopButton = "";
+    public bool isMoreThen6 = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadGame();      
+    }
+
+    private void openHelpDialog()
+    {
+        var parameters = new DialogParameters();
+        parameters.Add("gameId", SavedGame.Id);
+        var options = new DialogOptions() { MaxWidth = MaxWidth.Small, CloseOnEscapeKey = false, CloseButton = false, DisableBackdropClick = true };
+        var dialog = DialogService.Show<HowToEdit2>("",parameters, options);
+    }
+
+    private async Task LoadGame()
+    {
+        // Load count and ReadyBTN from session storage
+        var storedCount = await JSRuntime.InvokeAsync<string>("sessionStorage.getItem", "count");
+        if (!string.IsNullOrEmpty(storedCount))
+        {
+            count = int.Parse(storedCount);
+        }
+
+        var storedReadyBTN = await JSRuntime.InvokeAsync<string>("sessionStorage.getItem", "ReadyBTN");
+        if (!string.IsNullOrEmpty(storedReadyBTN))
+        {
+            ReadyBTN = bool.Parse(storedReadyBTN);
+        }
+
+        // Save count and ReadyBTN to session storage
+        await JSRuntime.InvokeVoidAsync("sessionStorage.setItem", "count", count.ToString());
+        await JSRuntime.InvokeVoidAsync("sessionStorage.setItem", "ReadyBTN", ReadyBTN.ToString());
+
+
+        var getResponse = await Http.GetAsync("api/Game/GetGame/" + gameId);
+        if (getResponse.IsSuccessStatusCode)
+        {
+            var gameFromSQL = await getResponse.Content.ReadFromJsonAsync<GameClass>();
+            SavedGame = gameFromSQL;
+        }
+
+        if (ReadyBTN == true)
+        {
+            var getResponse15 = await Http.GetAsync("api/Game/updateGame/" + false + "/" + SavedGame.Id);
+            if (getResponse15.IsSuccessStatusCode != true)
+            {
+                throw new Exception("Failed to update question");
+            }
+        }
+
+        if (SavedGame.CardsQuantity == 6)
+        {
+            minQues = 2;
+            marginTopButton = "18vh";
+        }
+        if (SavedGame.CardsQuantity == 9)
+        {
+            minQues = 3;
+            marginTopButton = "8vh";
+        }
+        if (SavedGame.CardsQuantity == 12)
+        {
+            minQues = 4;
+            marginTopButton = "20vh";
+        }
+
+        var getResponse6 = await Http.GetAsync("api/Game/resourceIdByGameId/" + SavedGame.Id);
+        if (getResponse6.IsSuccessStatusCode == true)
+        {
+            var resourceIdFromSql = getResponse6.Content.ReadFromJsonAsync<List<int>>().Result;
+            if (resourceIdFromSql != null)
+            {
+                foreach (var resourceId in resourceIdFromSql)
+                {
+                    var getResponse7 = await Http.GetAsync("api/Game/resourcesById/" + resourceId);
+                    if (getResponse7.IsSuccessStatusCode == true)
+                    {
+                        var resourceFromSql = getResponse7.Content.ReadFromJsonAsync<Resource>().Result;
+                        resourcesList.Add(resourceFromSql);
+
+                        if (resourcesList.Count == 3)
+                        {
+                            isResources = true;
+                        }
+                        else if (resourcesList.Count == 0 || resourcesList.Count >= 6)
+                        {
+                            isResources = false;
+                        }
+
+                        foreach (var r in resourcesList)
+                        {
+                            r.ImageUrl = "images/ArrowUp.png";
+
+                            if (r.Type.Length <= 6)
+                            {
+                                resourceFontSize = "13px";
+                            }
+                            if (r.Type.Length >= 7 && r.Type.Length <= 20)
+                            {
+                                resourceFontSize = "10px";
+                            }
+                        }
+                        StateHasChanged();
+                    }
+                }
+            }
+        }
+
+        var getResponse2 = await Http.GetAsync("api/Game/scaleIdByGameId/" + SavedGame.Id);
+        if (getResponse2.IsSuccessStatusCode == true)
+        {
+            var scalesIdFromSql = getResponse2.Content.ReadFromJsonAsync<List<int>>().Result;
+            if (scalesIdFromSql != null)
+            {
+                foreach (var ScaleId in scalesIdFromSql)
+                {
+                    var getResponse5 = await Http.GetAsync("api/Game/scalesById/" + ScaleId);
+                    if (getResponse5.IsSuccessStatusCode == true)
+                    {
+                        var scaleFromSql = getResponse5.Content.ReadFromJsonAsync<Scales>().Result;
+                        scalesList.Add(scaleFromSql);
+
+                        if (scalesList.Count >= 3)
+                        {
+                            isScales = true;
+                        }
+                        else if (scalesList.Count == 0 || scalesList.Count >= 6)
+                        {
+                            isScales = false;
+                        }
+
+                        int totalMarket = 0;
+                        int avgMarket = 0;
+                        foreach (var s in scalesList)
+                        {
+                            totalMarket += s.Value;
+                        }
+                        avgMarket = totalMarket / scalesList.Count;
+
+                        if (avgMarket <= 30)
+                        {
+                            greenOpacity = 0.25;
+                            yellowOpacity = 0.25;
+                            redOpacity = 1;
+                        }
+                        else if (avgMarket >= 31 && avgMarket <= 70)
+                        {
+                            greenOpacity = 0.25;
+                            yellowOpacity = 1;
+                            redOpacity = 0.25;
+                        }
+                        else
+                        {
+                            greenOpacity = 1;
+                            yellowOpacity = 0.25;
+                            redOpacity = 0.25;
+                        }
+
+                        StateHasChanged();
+                    }
+                }
+            }
+        }       
+
+        RefreshHex();
+    }
+
+    private async Task RefreshHex()
+    {
+        var questionResponse = await Http.GetAsync("api/Game/allQuestions/" + SavedGame.Id);
+        var unexpectedResponse = await Http.GetAsync("api/Game/allUnexpected/" + SavedGame.Id);
+
+        if (!questionResponse.IsSuccessStatusCode || !unexpectedResponse.IsSuccessStatusCode)
+        {
+            return;
+        }
+
+        questions = await questionResponse.Content.ReadFromJsonAsync<List<Question>>();
+        unexpectedList = await unexpectedResponse.Content.ReadFromJsonAsync<List<UnexpectedElement>>();
+
+        if (questions == null || unexpectedList == null)
+        {
+            return;
+        }
+
+        foreach(var q in questions)
+        {
+            if (q.Index != null)
+            {
+                hexagonStates[q.Index] = true;
+                GetHexagonImage(q.Index);
+                bool isDone =AllIndexesDone(q.Index);
+                if (isDone){
+                    ReadyBTN = false;
+                } 
+                else
+                {
+                    ReadyBTN = true;
+                }
+            }
+        }
+
+        foreach (var u in unexpectedList)
+        {
+            if (u.Index != null)
+            {
+                hexagonStates[u.Index] = false;
+                GetHexagonImage(u.Index);
+                bool isDone = AllIndexesDone(u.Index);
+                if (isDone)
+                {
+                    ReadyBTN = false;
+                }
+                else
+                {
+                    ReadyBTN = true;
+                }
+            }
+        }
+
+
+        if (SavedGame.CardsQuantity == 6)
+        {
+            minQues = 2;
+            marginTopButton = "18vh";
+        }
+        if (SavedGame.CardsQuantity == 9)
+        {
+            minQues = 3;
+            marginTopButton = "8vh";
+        }
+        if (SavedGame.CardsQuantity == 12)
+        {
+            minQues = 4;
+            marginTopButton = "20vh";
+        }
+
+        StateHasChanged();
+    }
+
+
+    private async Task Settings()
+    {
+
+        var parameters = new DialogParameters();
+        parameters.Add("EditorId", SavedGame.EditorId);
+        parameters.Add("SavedGame", SavedGame);
+        parameters.Add("isMoreThen6", isMoreThen6);
+        parameters.Add("GameUpdatedCallback", new Action<GameClass>(HandleGameUpdated));
+
+        var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Small,
+                CloseOnEscapeKey = false,
+                CloseButton = false,
+                DisableBackdropClick = true
+            };
+        var dialog = DialogService.Show<Settings>("", parameters, options);
+
+        var result = await dialog.Result;
+        if (!result.Cancelled)
+        {
+            count = 0;
+        }
+    }
+
+    private void HandleGameUpdated(GameClass updatedGame)
+    {
+        SavedGame = updatedGame;
+        for(var i=0; i < SavedGame.CardsQuantity; i++)
+        {
+            hexagonStates.Remove(i);
+            toolTipRotate = "";
+        }
+        StateHasChanged();
+
+        resourcesList.Clear();
+        scalesList.Clear();
+
+        LoadGame();
+    }
+
+    private void HandleHexUpdated(object hexContent, int index)
+    {
+        if (hexContent is Question)
+        {
+            hexagonStates[index] = true; 
+        }
+        else if (hexContent is UnexpectedElement)
+        {
+            hexagonStates[index] = false; 
+        }
+
+        bool isDone = AllIndexesDone(index);
+
+        if (isDone)
+        {
+            ReadyBTN = false;
+        } else
+        {
+            ReadyBTN = true;
+        }
+
+        StateHasChanged();
+    }
+
+    private bool AllIndexesDone(int index)
+    {
+        if (hexagonStates.ContainsKey(index))
+        {                   
+            count++;
+        }
+        if (count >= 7) 
+        {
+            isMoreThen6 = true;
+        }
+        return count == SavedGame.CardsQuantity;
+    }
+
+    private (string imageSource, string imgScale) GetHexagonImage(int index)
+    {
+        string imgScale = "45%";
+        string imageSource = "images/hexLogo.png"; 
+
+        if (hexagonStates.ContainsKey(index))
+        {
+            if (hexagonStates[index] == true)
+            {
+                imgScale = "70%";
+                imageSource = "images/lawHex.png";
+            }
+            else
+            {
+                imgScale = "70%";
+                imageSource = "images/SupriseHex.png";
+            }
+        } 
+        return (imageSource, imgScale);
+    }
+
+    private async Task QuestionTypeDialog(int index)
+    {
+        if (!hexagonStates.ContainsKey(index))
+        {
+            bool isEnoughQuestions = IsValidQuestionCount();
+
+            var parameters = new DialogParameters();
+            parameters.Add("SavedGame", SavedGame);
+            parameters.Add("index", index);
+            parameters.Add("isEnoughQuestions", isEnoughQuestions);
+            parameters.Add("QuesUpdatedCallback", new Action<Question, int>(HandleHexUpdated));
+            parameters.Add("UnExUpdatedCallback", new Action<UnexpectedElement, int>(HandleHexUpdated));
+
+            var options = new DialogOptions
+                    {
+                        MaxWidth = MaxWidth.ExtraSmall,
+                        CloseOnEscapeKey = false,
+                        CloseButton = false,
+                        DisableBackdropClick = true,
+                        NoHeader = true
+                    };
+            var dialog = DialogService.Show<QuestionType>("", parameters, options);
+        } 
+        else 
+        {
+            if (hexagonStates[index] == true)
+            {                
+                var getResponse = await Http.GetAsync("api/Game/getQuestionByIndex/" + SavedGame.Id + "/" + index);
+
+                if (getResponse.IsSuccessStatusCode == true)
+                {
+                    Question LastAddedQuestion = await getResponse.Content.ReadFromJsonAsync<Question>();
+
+                    var parameters = new DialogParameters();
+                    parameters.Add("LastAddedQuestion", LastAddedQuestion);
+                    parameters.Add("SavedGame", SavedGame);
+                    var options = new DialogOptions() { MaxWidth = MaxWidth.ExtraLarge, CloseOnEscapeKey = false, CloseButton = false, DisableBackdropClick = true };
+                    var dialog = DialogService.Show<EditDecisionRound>("", parameters, options);
+
+                    var result = await dialog.Result;
+                    if (!result.Cancelled)
+                    {
+                        HandleHexUpdated(LastAddedQuestion, index);
+                    }
+                }
+
+            } else {
+
+                var getResponse = await Http.GetAsync("api/Game/getUnexpectedByIndex/" + SavedGame.Id + "/" + index);
+
+                if (getResponse.IsSuccessStatusCode == true)
+                {
+                    UnexpectedElement LastAddedUnexpected = await getResponse.Content.ReadFromJsonAsync<UnexpectedElement>();
+
+                    var parameters = new DialogParameters();
+                    parameters.Add("LastAddedUnexpected", LastAddedUnexpected);
+                    parameters.Add("SavedGame", SavedGame);
+                    var options = new DialogOptions() { MaxWidth = MaxWidth.ExtraLarge, CloseOnEscapeKey = false, CloseButton = false, DisableBackdropClick = true };
+                    var dialog = DialogService.Show<EditUnexpected>("", parameters, options);
+
+                    var result = await dialog.Result;
+                    if (!result.Cancelled)
+                    {
+                        HandleHexUpdated(LastAddedUnexpected, index);
+                    }
+                }                
+            }
+
+        }
+    }
+
+    private bool IsValidQuestionCount()
+    {
+        int cardQuantity = SavedGame.CardsQuantity;
+        int questionCount = 0;
+        int unexpectedElementCount = 0;
+
+        foreach (var state in hexagonStates.Values)
+        {
+            if (state == true)
+            {
+                questionCount++;
+            }
+            else if (state == false)
+            {
+                unexpectedElementCount++;
+            }
+        }
+
+        if (cardQuantity == 6 && unexpectedElementCount >= 4 && questionCount < 2)
+        {
+            return false;
+        }
+        else if (cardQuantity == 9 && unexpectedElementCount >= 6 && questionCount < 3)
+        {
+            return false;
+        }
+        else if (cardQuantity == 12 && unexpectedElementCount >= 8 && questionCount < 4)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+
+    private async Task EditResources() 
+    {
+        var parameters = new DialogParameters();
+        parameters.Add("SavedGame", SavedGame);
+        parameters.Add("GameUpdatedCallback", new Action<GameClass>(HandleGameUpdated));
+
+        var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.ExtraLarge,
+                CloseOnEscapeKey = false,
+                CloseButton = false,
+                DisableBackdropClick = true,
+                NoHeader = true
+            };
+        var dialog = DialogService.Show<EditResourcesComponent>("", parameters, options);
+    }
+
+    private async Task EditScales()
+    {
+        var parameters = new DialogParameters();
+        parameters.Add("SavedGame", SavedGame);
+        parameters.Add("GameUpdatedCallback", new Action<GameClass>(HandleGameUpdated));
+
+        var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.ExtraLarge,
+                CloseOnEscapeKey = false,
+                CloseButton = false,
+                DisableBackdropClick = true,
+                NoHeader = true
+            };
+        var dialog = DialogService.Show<EditScalesComponent>("", parameters, options);
+    }
+
+    public void backToGames()  
+    {
+        navigationManager.NavigateTo("EditorGames");
+    }
+
+    public async Task openFinalDialog()
+    {
+        if (ReadyBTN == false)
+        {
+            var getResponse = await Http.GetAsync("api/Game/updateGame/" + true + "/" + SavedGame.Id);
+            if (getResponse.IsSuccessStatusCode != true)
+            {
+                throw new Exception("Failed to update question");
+            }
+
+            var parameters = new DialogParameters();
+            parameters.Add("SavedGame", SavedGame);
+
+            var options = new DialogOptions
+                {
+                    MaxWidth = MaxWidth.ExtraLarge,
+                    CloseOnEscapeKey = false,
+                    CloseButton = false,
+                    DisableBackdropClick = true,
+                    NoHeader = true
+                };
+            var dialog = DialogService.Show<GetLink>("", parameters, options);
+        } else
+        {
+            return;
+        }
+    }
+
+    public async void openAboutUs()
+    {
+        var options = new DialogOptions() { MaxWidth = MaxWidth.Small, CloseOnEscapeKey = false, CloseButton = false, DisableBackdropClick = true };
+        var dialog = DialogService.Show<AboutUs2>("", options);
+    }
+
+}

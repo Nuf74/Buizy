@@ -1,0 +1,51 @@
+﻿@inject HttpClient Http
+<div style="background-color:@BGcolor; width:15%; border-radius:20px; color:white; text-align:center;left: 2vh;position: fixed;">
+    <MudIcon Icon="@Icons.Material.Filled.Timelapse" Size="Size.Small" />
+    <span>@_elapsedTime</span>
+</div>
+
+@code {
+    private int _elapsedTime;
+    private bool _isTimerExpired;
+    [Parameter]
+    public Action OnTimerExpired { get; set; }
+    [Inject]
+    private IJSRuntime JSRuntime { get; set; }
+    private string BGcolor = "darkcyan";
+    private int _timerId;
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        _elapsedTime = 90;
+
+        _timerId = await JSRuntime.InvokeAsync<int>("startTimer", DotNetObjectReference.Create(this));
+    }
+
+    [JSInvokable]
+    public void UpdateElapsedTime()
+    {
+        _elapsedTime--;
+
+        if (_elapsedTime < 11)
+        {
+            BGcolor = "red";
+        }
+        StateHasChanged();
+
+
+        if (_elapsedTime == 0)
+        {
+            _isTimerExpired = true;
+            OnTimerExpired?.Invoke();
+        }
+    }
+
+    public void StopTimer()
+    {
+        JSRuntime.InvokeVoidAsync("clearInterval", _timerId);
+        _elapsedTime = 0;
+        BGcolor = "black";
+        StateHasChanged();
+    }
+}

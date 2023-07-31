@@ -1,0 +1,189 @@
+﻿@using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager navigationManager
+
+<style>
+    .mud-overlay .mud-overlay-scrim.mud-overlay-dark {
+        background-color: lightgray;
+        opacity: 20%;
+    }
+
+    .mud-button-filled.mud-button-filled-secondary {
+        background-color: #A7BF4E;
+        color: white;
+    }
+
+    .mud-dialog-width-md{
+        max-width:65vw;
+        max-height:91vh;
+    }
+
+    .mud-icon-root.mud-svg-icon {
+        fill: white;
+    }
+
+    .mud-dialog .mud-dialog-title {
+        padding: 2px 10px;
+    }
+
+    .d-flex justify-center{
+        padding:2vh;
+        margin-bottom: 52vh;
+    }
+
+    .mud-dialog .mud-dialog-actions {
+        position: absolute;
+        left: 1vw;
+        bottom: 1vh;
+    }
+
+    .mb-5, .my-5 {
+        margin-bottom: 205px!important;
+        opacity: 0.8;
+    }
+
+    .mud-dialog .mud-dialog-content {
+        padding: 20px 20px;
+    }
+
+</style>
+
+<PageTitle>How To Play</PageTitle>
+@*
+                <div class="card shadow-2-strong" style="background-color:#12273D; border-radius: 3rem; box-shadow: 0 15px 15px 0 rgba(9, 20, 30, 1), 0 7px 7px 0 rgba(9, 20, 30, 1);"
+                <img src="images/howToPlay.png" />
+                </div>/>*@
+<MudDialog Style=" background: #12273D;
+        position: fixed;
+        border-radius: 15px 15px 15px 15px;
+        text-align: right;
+        padding-top: 0.2rem;
+        box-shadow: 0 15px 15px 0 rgba(9, 20, 30, 1), 0 7px 7px 0 rgba(9, 20, 30, 1);
+height:100%; width:100%;">
+    <TitleContent>
+        <div style="background-color:darkcyan; width:15%; border-radius:20px; color:white; text-align:center; display:contents; justify-content:center; align-items:center;left: 2vh;position: fixed;">
+            <TimerHowToPlay @ref="timerRef" OnTimerExpired="@HandleTimerExpired" />
+        </div>
+        <div style="display: flex; align-items: center; font-family:Fredoka;direction:rtl; align-items: start; font-size: 18px; font-weight: 400;justify-content:center;color: white;">
+            איך משחקים?
+        </div>   
+    </TitleContent>
+
+    <DialogContent>
+        @*<MudImage Src="images/howToPlay.png" Width="42" Height="25" Fluid="true" Style="transform:scale(110%);"></MudImage>*@
+
+
+        <MudCarousel Class="mud-width-full" AutoCycle="false" TData="object" Swipe="true">
+    <BulletTemplate Context="selected">
+        <div Class="mud-button-root mud-icon-button mud-icon-button-color-inherit mud-ripple mud-ripple-icon mb-5">
+            <span class="mud-icon-button-label" style="scale:70%;">
+                <MudIcon Icon="@(selected ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Circle)" Color="@Color.Inherit" />
+            </span>
+        </div>
+    </BulletTemplate>
+    <PreviousButtonTemplate>
+        <div Class="mud-button-root mud-icon-button mud-icon-button-color-inherit mud-ripple mud-ripple-icon">
+            <span class="mud-icon-button-label">
+                <MudIcon Class="mud-ripple mud-ripple-icon mud-icon-button-size-medium" Icon="@Icons.Material.Filled.SkipPrevious" Color="@Color.Inherit" />
+            </span>
+        </div>
+    </PreviousButtonTemplate>
+    <NextButtonTemplate>
+        <div Class="mud-button-root mud-icon-button mud-icon-button-color-inherit mud-ripple mud-ripple-icon">
+            <span class="mud-icon-button-label">
+                <MudIcon Class="mud-ripple mud-ripple-icon mud-icon-button-size-medium" Icon="@Icons.Material.Filled.SkipNext" Color="@Color.Inherit" />
+            </span>
+        </div>
+    </NextButtonTemplate>
+    <ChildContent>
+        <MudCarouselItem>
+            <div class="d-flex">
+                @*<MudIcon Class="mx-auto my-auto" Icon="@Icons.Custom.Brands.MudBlazor" Size="@Size.Large" />*@
+                        <MudImage Src="images/NewHow1.png" Fluid="true" Style="transform:scale(100%);"></MudImage>
+            </div>
+        </MudCarouselItem>
+        <MudCarouselItem>
+            <div class="d-flex">
+                        <MudImage Src="images/NewHow2.png" Fluid="true" Style="transform:scale(100%);"></MudImage>
+            </div>
+        </MudCarouselItem>
+        <MudCarouselItem>
+            <div class="d-flex">
+                        <MudImage Src="images/NewHow3.png" Fluid="true" Style="transform:scale(100%);"></MudImage>
+            </div>
+           </MudCarouselItem>
+            <MudCarouselItem>
+                <div class="d-flex">
+                    <MudImage Src="images/NewHow4.png" Fluid="true" Style="transform:scale(100%);"></MudImage>
+                </div>
+            </MudCarouselItem>
+            <MudCarouselItem>
+                <div class="d-flex">
+                    <MudImage Src="images/NewHow5.png" Fluid="true" Style="transform:scale(100%);"></MudImage>
+                </div>
+            </MudCarouselItem>
+         </ChildContent>
+    </MudCarousel>
+
+
+
+    </DialogContent>
+
+    <DialogActions>
+        <p style="color:white;" hidden=@(!hasClicked)>נחכה עד שהשאר יאשרו ונתחיל :)</p>
+            <MudButton style="font-family:Fredoka;" Color="Color.Secondary" Variant="Variant.Filled" Disabled=@hasClicked OnClick="@(async () => {
+                    await Submit();
+                       MudDialog.SetTitle("");
+                       StateHasChanged();})">הבנתי תודה</MudButton>
+
+    </DialogActions>
+</MudDialog>
+
+
+
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    private HubConnection? hubConnection;
+    [Parameter]
+    public string placeHolder { get; set; } = "";
+    [Parameter]
+    public int gameId { get; set; }
+    bool hasClicked = false;
+    private bool _isTimerExpired;
+    private TimerHowToPlay timerRef;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+             .WithUrl(navigationManager.ToAbsoluteUri("./game"))
+             .Build();
+
+        hubConnection.On("SendToGame", async () =>
+     {
+         navigationManager.NavigateTo($"GameBoard/{placeHolder}/{gameId}");
+     });
+
+        await hubConnection.StartAsync();
+    }
+
+    private async Task Submit()
+    {
+        hasClicked = true;
+        if (hubConnection is not null)
+        {
+            timerRef.StopTimer();
+            await hubConnection.SendAsync("afterHowToPlay");
+        }
+    }
+
+    public async void HandleTimerExpired()
+    {
+        hasClicked = true;
+        if (hubConnection is not null)
+        {
+            timerRef.StopTimer();
+            await hubConnection.SendAsync("afterHowToPlay");
+        }
+    }
+}

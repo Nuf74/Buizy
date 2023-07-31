@@ -1,0 +1,119 @@
+﻿@inject NavigationManager _Nav
+@inject HttpClient Http
+@using NufarMeir_GalOxenberg.Shared.DTOs
+@page "/"
+
+<style>
+    .btn-primary {
+        color: #fff;
+        background-color: #A7BF4E;
+        border-color: #A7BF4E;
+    }
+
+        .btn-primary:hover {
+            color: #12273D;
+            background-color: #D9E5A8;
+            border-color: #D9E5A8;
+        }
+        .btn-primary.disabled, .btn-primary:disabled {
+            color: #fff;
+            background-color: grey;
+            border-color: gray;
+        }
+
+        .btn-check:focus + .btn-primary, .btn-primary:focus {
+            color: #fff;
+            background-color: unset;
+            border-color: unset;
+            box-shadow: unset;
+        }
+
+    .btn-check:focus + .btn, .btn:focus {
+        outline: 0;
+        box-shadow: unset;
+    }
+</style>
+
+<section class="vh-100" style="background-color: #12273D; font-family:Fredoka">
+  <div class="container py-2 h-100">
+        <img src="images/Newlogo.png" style="transform:scale(11%); position: fixed; top: -30%; left: -20%; right: 37%;" />
+    <div class="row d-flex justify-content-center align-items-center h-100">
+      <div class="col-12 col-sm-12 col-md-8 col-lg-6 col-xl-5">
+                <div class="card shadow-2-strong" style="background-color:#12273D; border-radius: 3rem; box-shadow: 0 15px 15px 0 rgba(9, 20, 30, 1), 0 7px 7px 0 rgba(9, 20, 30, 1); top:5vh">
+          <div class="card-body px-4 text-center">
+
+    <div class="form-outline">
+                <div class="row m-2 d-flex justify-content-center">
+
+                <h4 style="color:white;">
+                    מהו קוד המשחק שקיבלת?
+                </h4>
+                    <input id="NUMwidth" type="number" @onkeyup="check"
+                            value="@gameId" placeholder="קוד למשחק לדוגמה: 1"
+                            style="display: flex; width: 51vh;height:11vh;
+                    margin-top: 1vh; margin-right: auto; margin-left:auto; direction: ltr;
+                      border: 1px solid;
+                      border-radius: 3px;
+                      background: #EFEED8;
+                      text-align: center;
+    font-size: 18px;"
+                @oninput="(ChangeEventArgs args) =>
+                {
+                    if (int.TryParse(args.Value.ToString(), out int result))
+                    {
+                        gameId = result;   
+                        check();
+                    }
+                }" />
+                                
+
+                    <div class="cols-sm-6 m-2 pt-2">
+                        <button type="button" class="btn btn-primary btn-md" @onclick="Ready" disabled=@isEmpty>המשך למשחק</button>
+                    </div>
+                                <p style="color: orangered; font-family:Fredoka;">@msg</p>
+                    
+
+                 </div>              
+           </div>
+                 </div> 
+               </div>
+                </div>
+                </div>
+                </div>
+</section>
+
+
+@code {
+    public int? gameId = null;
+    public bool isEmpty = true;
+    public string msg = "";
+
+    public async Task check()
+    {
+        if (gameId > 0 && gameId != null)
+        {
+            var getResponse3 = await Http.GetAsync("api/Game/GameExist/" + gameId);
+
+            if (getResponse3.IsSuccessStatusCode == true)
+            {
+                var id = getResponse3.Content.ReadFromJsonAsync<bool>().Result;
+
+                if (id == true)
+                {
+                    isEmpty = false;
+                    msg = "";
+                }
+                else 
+                {
+                    isEmpty = true;
+                    msg = "אופס, קוד המשחק לא קיים...";
+                }
+            }
+        }
+    }
+
+    void Ready()
+    {
+        _Nav.NavigateTo("https://projects.telem-hit.net/2023/Buizy_NufarGal/" + gameId);
+    }
+}
