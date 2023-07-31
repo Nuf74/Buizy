@@ -1,0 +1,39 @@
+﻿@inject NavigationManager _nav
+
+<Router AppAssembly="@typeof(App).Assembly">
+    <Found Context="routeData">
+        @if (EditorId > 0 && _nav.Uri.Contains("editor"))
+        {
+            <CascadingValue Value="@EditorId">
+                <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+                <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+            </CascadingValue>
+        }
+        else
+        {
+            <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        }
+    </Found>
+    <NotFound>
+        <PageTitle>Not found</PageTitle>
+        <LayoutView Layout="@typeof(MainLayout)">
+            <p role="alert">Sorry, there's nothing at this address.</p>
+        </LayoutView>
+    </NotFound>
+</Router>
+
+@code {
+        int EditorId = 0;
+
+        [Inject]
+        public Portelem.Auth.AuthHelper _Auth { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (_nav.Uri.Contains("editor"))
+        {
+            EditorId = await _Auth.Check();
+        }
+}
+}
